@@ -1,0 +1,53 @@
+@use '@/styles/variables' as *;
+@use '@/styles/mixins' as *;
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: 700;
+}
+
+.filters {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  label {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+
+  select, input {
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $border-radius;
+    padding: $spacing-xs $spacing-md;
+    color: $color-text-primary;
+    outline: none;
+    min-width: 160px;
+    transition: border-color 0.15s;
+
+    &:focus { border-color: $color-accent; }
+  }
+}
+
+.refreshBtn {
+  @include button-base;
+  background: $color-surface-raised;
+  color: $color-text-secondary;
+  align-self: flex-end;
+  &:hover { background: $color-border; }
+}

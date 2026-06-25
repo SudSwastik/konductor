@@ -1,0 +1,128 @@
+@use '@/styles/variables' as *;
+@use '@/styles/mixins' as *;
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: 700;
+}
+
+.tabs {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-lg;
+  border-bottom: 1px solid $color-border;
+  padding-bottom: -1px;
+}
+
+.tab {
+  @include button-base;
+  background: none;
+  color: $color-text-secondary;
+  border-radius: 0;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+
+  &:hover { color: $color-text-primary; }
+
+  &.activeTab {
+    color: $color-accent;
+    border-bottom-color: $color-accent;
+  }
+}
+
+.newBtn {
+  @include button-base;
+  background: $color-accent;
+  color: #fff;
+  &:hover { background: $color-accent-hover; }
+}
+
+// Modal / drawer form
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  @include card;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+}
+
+.modalTitle {
+  font-size: $font-size-md;
+  font-weight: 600;
+  margin-bottom: $spacing-lg;
+}
+
+.field {
+  margin-bottom: $spacing-md;
+
+  label {
+    display: block;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    margin-bottom: $spacing-xs;
+  }
+
+  input, textarea {
+    width: 100%;
+    background: $color-bg;
+    border: 1px solid $color-border;
+    border-radius: $border-radius;
+    padding: $spacing-sm $spacing-md;
+    color: $color-text-primary;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &:focus { border-color: $color-accent; }
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+}
+
+.hint {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-top: $spacing-xs;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+}
+
+.cancelBtn {
+  @include button-base;
+  background: $color-surface-raised;
+  color: $color-text-secondary;
+  &:hover { background: $color-border; }
+}
+
+.submitBtn {
+  @include button-base;
+  background: $color-accent;
+  color: #fff;
+  &:hover { background: $color-accent-hover; }
+}
+
+.error {
+  color: $color-danger;
+  font-size: $font-size-sm;
+  margin-bottom: $spacing-md;
+}
