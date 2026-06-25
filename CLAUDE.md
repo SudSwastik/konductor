@@ -13,135 +13,145 @@ mvn test
 
 # Run tests for a specific module
 mvn test -pl konductor-model
-mvn test -pl konductor-publisher-sdk
-mvn test -pl konductor-server
+mvn test -pl konductor-producer
+mvn test -pl konductor-platform
 
 # Run a single test class
-mvn test -pl konductor-server -Dtest=JsonPathFilterServiceTest
+mvn test -pl konductor-platform -Dtest=JsonPathFilterServiceTest
 
 # Run integration tests (requires Docker for Testcontainers)
-mvn verify -pl konductor-server
-
-# Compile without running tests
-mvn compile
+mvn verify -pl konductor-platform
 
 # UI (Next.js)
 cd konductor-ui && npm run dev    # dev server on :3000
 cd konductor-ui && npm run build  # production build
-cd konductor-ui && npm test       # Jest unit tests
 ```
 
-## Architecture Overview
+## What This Project Is (and Is Not)
 
-Three-module Maven project + one Next.js app. See `IMPLEMENTATION_PLAN.md` for the phased build plan.
+**Konductor is a publisher-side event routing platform.** It accepts events from producers, validates them, routes them through Kafka, applies per-subscription JSONPath filters, and delivers each subscriber's filtered slice to their own Kafka output topic.
+
+**There is no consumer/subscriber code in this project.** Subscriber projects are separate services that import `konductor-model` for the event envelope types and consume from their own output topic however they choose.
+
+## Module Layout
 
 ```
 konductor/
-├── konductor-model/          # Shared POJOs — no Spring/Kafka deps
-├── konductor-publisher-sdk/  # Producer client library
-├── konductor-server/         # Spring Boot app (consumer + REST API)
-└── konductor-ui/             # Next.js 14 ops/admin UI (TypeScript + SCSS)
+├── konductor-model/   # Shared envelope POJOs — importable by any subscriber project
+├── konductor-producer/  # Thin HTTP library for data producers (no Kafka dep)
+├── konductor-platform/  # Spring Boot platform — ingest, routing, admin API
+└── konductor-ui/      # Next.js 14 admin UI (subscriptions + DLQ only)
 ```
 
-### Event Envelope (3 parts)
+## Architecture
 
-Every Kafka message is a `KonductorEvent` with exactly three sections:
+### Event Envelope (3 parts — defined in `konductor-model`)
 
-1. **`metadata`** (`EventMetadata`) — fixed schema, versioned. Fields: `eventId` (UUID), `eventType`, `eventTimestamp`, `sourceConfigId`, `configType`, `schemaVersion`, `correlationId`, `traceId`.
-2. **`payload`** (`Map<String, Object>`) — fully dynamic JSON object. Validated against Confluent Schema Registry when toggle is ON.
-3. **`dataRefs`** (`List<DataRef>`, nullable) — external large-payload pointers. Each has `uri`, `contentType`, `checksum` (SHA-256), `sizeBytes`.
+Every `KonductorEvent` has exactly three sections:
+
+1. **`metadata`** (`EventMetadata`) — fixed schema. Fields: `eventId` (UUID), `eventType`, `eventTimestamp`, `sourceConfigId`, `configType`, `schemaVersion`, `correlationId`, `traceId`.
+2. **`payload`** (`Map<String, Object>`) — dynamic JSON. Validated against Confluent Schema Registry when toggle is ON.
+3. **`dataRefs`** (`List<DataRef>`, nullable) — external large-payload pointers. Each: `uri`, `contentType`, `checksum` (SHA-256), `sizeBytes`.
+
+### Routing Flow
+
+```
+Producer → konductor-producer → POST /api/v1/publish
+                                      │
+                               [schema registry?]
+                                      │
+                              Kafka (internal topic)
+                                      │
+                          @KafkaListener (EventRouter)
+                                      │
+                     for each active subscription (by eventType):
+                              │
+                        dedup check (Redis 24h)    → skip if duplicate
+                              │
+                        JSONPath filter             → filtered KonductorEvent
+                              │
+                        KafkaProducer → subscription.output_topic
+                              │
+                 (on failure) → dead_letter_events (PostgreSQL)
+```
+
+The filtered event sent to `output_topic` is a full `KonductorEvent` with the same `metadata` and `dataRefs` but only the subscriber's subscribed `payload` fields.
 
 ### Schema Registry Toggle
 
-Global flag in `application.yml`:
 ```yaml
 konductor:
   schema-registry:
     enabled: true   # false = skip validation entirely
     url: http://schema-registry:8081
   kafka:
-    topic: konductor-events
+    internal-topic: konductor-events
 ```
 
-When `enabled=true`, the SDK validates `payload` against the registered JSON Schema for `(eventType, schemaVersion)` **before** publishing to Kafka. The toggle is wired via `@ConditionalOnProperty` — no if/else in business code.
+Wired via `@ConditionalOnProperty` bean swap — `SchemaRegistryValidator` is a no-op bean when `enabled=false`. No if/else in business code.
 
 ### Subscription Registry (PostgreSQL)
 
-Consumers request subscriptions specifying `eventType` and a list of JSONPath expressions (`field_paths`) for the payload fields they want. Subscriptions start `active=false` and require admin approval before they receive events.
+Admin registers subscriptions specifying `subscriberId`, `eventType`, `field_paths` (JSONPath array), and `output_topic`. Subscriptions start `active=false` and require explicit admin approval.
 
-Key tables:
-- `subscriptions` — consumerId, eventType, field_paths (JSONB), active, subscription_version
-- `consumer_events` — polling inbox; one row per (consumer, event); holds `filtered_payload` (JSONB)
+Tables:
+- `subscriptions` — subscriberId, eventType, field_paths (JSONB), output_topic, active, subscription_version
+- `dead_letter_events` — failed routing events; `original_event JSONB` stores full snapshot for replay
 
-### Event Processing Flow
+### konductor-producer
 
+Producers embed this library. It has zero infrastructure dependencies — just HTTP:
+```java
+KonductorEvent event = KonductorEventBuilder.newEvent()
+    .eventType("order.created")
+    .sourceConfigId("order-service")
+    .payload(Map.of("orderId", "abc", "amount", 99.5))
+    .build();
+
+publisher.publish(event);  // POST /api/v1/publish
 ```
-Kafka @KafkaListener
-  → load active subscriptions by eventType  [PostgreSQL]
-  → for each subscription:
-      1. Redis SETNX "dedup:{consumerId}:{eventId}" TTL=24h  → skip if exists
-      2. Apply JSONPath filter over payload  [Jayway JsonPath]
-      3. INSERT into consumer_events
-```
+Config: `konductor.client.server-url=http://konductor-platform:8080`
 
-Dedup key is `consumerId:eventId` — same event re-published within 24h is suppressed **per subscriber**.
+### konductor-model (for subscriber projects)
 
-### Consumer Polling API
+Subscriber projects add this as a Maven dependency to get `KonductorEvent`, `EventMetadata`, `DataRef`. They then consume from their designated `output_topic` and deserialise using standard Jackson. No other Konductor dependency needed.
 
-Consumers poll `GET /api/v1/events?consumerId=&since=&limit=` and acknowledge with `POST /api/v1/events/{eventId}/ack`. Each response item contains: original `metadata`, `consumerMetadata` (consumerId + subscriptionVersion), `filteredPayload` (only subscribed fields), and `dataRefs` if present.
+### DLQ
 
-### Key Libraries
+Events that fail routing (JSONPath error, Kafka send failure, etc.) land in `dead_letter_events` with the full original event snapshot. Admin can retry (`POST /api/v1/admin/dlq/{id}/retry`) which re-runs the routing pipeline, or discard.
 
-| Library | Purpose |
-|---|---|
-| `spring-kafka` | Kafka producer/consumer |
-| `kafka-json-schema-serializer` (Confluent) | Schema registry integration |
-| `com.jayway.jsonpath:json-path` | JSONPath field filtering |
-| `spring-data-jpa` + `postgresql` | Subscription registry + consumer inbox |
-| `spring-data-redis` | 24h dedup TTL |
-| `flyway-core` | DB schema migrations |
-| `org.testcontainers` | Integration tests (Kafka, Postgres, Redis) |
+### Admin UI (`konductor-ui`)
 
-### Dead-Letter Queue (DLQ) + Retries
-
-Two retry surfaces, both exposed in the UI:
-
-1. **Server-side DLQ** (`dead_letter_events` table) — events that failed during Kafka consumer processing (bad JSON, schema error, filter crash, DB failure). Admin can retry (`POST /api/v1/admin/dlq/{id}/retry`) or discard.
-2. **Unacked consumer events** — `consumer_events` rows where `read_at` is null past a configured threshold. Consumer or admin can reset `read_at` via `POST /api/v1/events/{id}/retry` so the event re-appears on the next poll.
-
-`DeadLetterService.retry(id)` re-runs the full processing pipeline (dedup → filter → insert) for the original event snapshot stored in `original_event JSONB`.
-
-### Next.js UI (`konductor-ui`)
-
-```bash
-# Development
-cd konductor-ui
-npm install
-npm run dev        # http://localhost:3000
-
-# Production build
-npm run build
-npm start
-```
-
-- **`NEXT_PUBLIC_API_URL`** env var points to Spring Boot (e.g. `http://localhost:8080`)
-- Styling: **SCSS modules** only — no Tailwind. Global tokens in `src/styles/_variables.scss`
-- API calls go through `src/lib/api.ts` (typed fetch wrapper) — never call `fetch` directly from components
-- TypeScript types in `src/types/index.ts` mirror Java DTOs exactly
-
-**UI pages:**
+Admin-only — no consumer views.
 
 | Route | Purpose |
 |---|---|
-| `/events` | Consumer polling inbox — view filtered payload, ack events |
-| `/retries` | Two tabs: Unacked events + DLQ events with retry/discard actions |
-| `/subscriptions` | Consumer self-service — list own subscriptions, submit new requests |
-| `/admin/subscriptions` | Admin approval queue — approve / reject pending subscriptions |
+| `/admin/subscriptions` | Register, approve, reject, deactivate subscriptions |
+| `/admin/dlq` | View failed events, retry or discard |
+
+- Styling: **SCSS modules only** — global tokens in `src/styles/_variables.scss`
+- API calls go through `src/lib/api.ts` — never call `fetch` directly from components
 
 ## Important Conventions
 
-- **Never scatter `if (toggle)` checks** in business code — use `@ConditionalOnProperty` bean swaps.
-- **Subscription `field_paths`** are stored as a JSONB array of JSONPath strings (e.g. `["$.orderId", "$.customer.email"]`). Evaluate them with `JsonPathFilterService`, not inline.
-- **`output_topic`** column exists in `subscriptions` but delivery is currently polling-only; leave it populated but unused — it's reserved for a future Kafka-push delivery mode.
-- Flyway migrations live in `konductor-server/src/main/resources/db/migration/` and follow `V{n}__{description}.sql` naming.
-- Integration tests use Testcontainers — Docker must be running. They live in `src/test/java` alongside unit tests but are tagged with `@Tag("integration")`.
+- **No subscriber/consumer code belongs in this repo.** If you find yourself writing polling endpoints or consumer-side logic, stop — that lives in a separate project.
+- **`konductor-producer` has zero infrastructure deps** — no Kafka, no Redis, no Spring Data.
+- **Schema registry toggle** uses `@ConditionalOnProperty` bean swap, not if/else checks scattered in code.
+- **`field_paths`** are a JSONB array of JSONPath strings. Always evaluate via `JsonPathFilterService`.
+- **`output_topic`** is mandatory on every subscription — it's where filtered events are routed.
+- **Filtered events** use the same `KonductorEvent` envelope; only `payload` is reduced to subscribed fields.
+- Flyway migrations: `konductor-platform/src/main/resources/db/migration/V{n}__{description}.sql`
+- Integration tests require Docker (Testcontainers). Tag them `@Tag("integration")`.
+
+### Key Libraries
+
+| Library | Module | Purpose |
+|---|---|---|
+| `spring-kafka` | platform | Kafka producer (ingest → internal topic) + EventRouter (@KafkaListener) |
+| `kafka-json-schema-serializer` (Confluent) | platform | Schema registry integration |
+| `com.jayway.jsonpath:json-path` | platform | JSONPath payload filtering |
+| `spring-data-jpa` + `postgresql` | platform | Subscription registry + DLQ |
+| `spring-data-redis` | platform | 24h dedup TTL |
+| `flyway-core` | platform | DB migrations |
+| `com.networknt:json-schema-validator` | platform | Payload validation against registry schema |
+| `org.testcontainers` | server (test) | Kafka, Postgres, Redis in integration tests |
