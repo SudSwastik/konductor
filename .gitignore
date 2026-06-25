@@ -1,0 +1,64 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# Node / Next.js
+konductor-ui/node_modules/
+konductor-ui/.next/
+konductor-ui/out/
+konductor-ui/.env
+konductor-ui/.env.local
+konductor-ui/.env.development.local
+konductor-ui/.env.test.local
+konductor-ui/.env.production.local
+konductor-ui/npm-debug.log*
+konductor-ui/yarn-debug.log*
+konductor-ui/yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Spring Boot
+spring-shell.log
+
+# Testcontainers
+.testcontainers.properties
+
+# Local env overrides
+application-local.yml
+application-local.properties
+
+# Md files
+IMPLEMENTATION_PLAN.md
