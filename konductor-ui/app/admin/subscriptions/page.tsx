@@ -24,6 +24,7 @@ export default function SubscriptionsPage() {
   const [tab, setTab] = useState<SubscriptionStatus>('ALL');
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<RegisterSubscriptionRequest>(EMPTY_FORM);
   const [fieldPathsRaw, setFieldPathsRaw] = useState('');
@@ -31,8 +32,12 @@ export default function SubscriptionsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       setSubscriptions(await api.subscriptions.list(tab));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to reach backend');
+      setSubscriptions([]);
     } finally {
       setLoading(false);
     }
@@ -41,18 +46,18 @@ export default function SubscriptionsPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleApprove = async (id: string) => {
-    await api.subscriptions.approve(id);
-    load();
+    try { await api.subscriptions.approve(id); load(); }
+    catch (err) { setLoadError(err instanceof Error ? err.message : 'Action failed'); }
   };
 
   const handleReject = async (id: string) => {
-    await api.subscriptions.reject(id);
-    load();
+    try { await api.subscriptions.reject(id); load(); }
+    catch (err) { setLoadError(err instanceof Error ? err.message : 'Action failed'); }
   };
 
   const handleDeactivate = async (id: string) => {
-    await api.subscriptions.deactivate(id);
-    load();
+    try { await api.subscriptions.deactivate(id); load(); }
+    catch (err) { setLoadError(err instanceof Error ? err.message : 'Action failed'); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,6 +95,8 @@ export default function SubscriptionsPage() {
           </button>
         ))}
       </div>
+
+      {loadError && <p className={styles.error}>{loadError}</p>}
 
       <SubscriptionTable
         subscriptions={subscriptions}

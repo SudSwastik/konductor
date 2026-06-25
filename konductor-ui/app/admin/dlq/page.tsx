@@ -11,9 +11,11 @@ export default function DlqPage() {
   const [status, setStatus] = useState<DlqStatus | ''>('');
   const [eventType, setEventType] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       setEvents(
         await api.dlq.list({
@@ -21,6 +23,9 @@ export default function DlqPage() {
           eventType: eventType.trim() || undefined,
         }),
       );
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to reach backend');
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -29,13 +34,13 @@ export default function DlqPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleRetry = async (id: string) => {
-    await api.dlq.retry(id);
-    load();
+    try { await api.dlq.retry(id); load(); }
+    catch (err) { setLoadError(err instanceof Error ? err.message : 'Action failed'); }
   };
 
   const handleDiscard = async (id: string) => {
-    await api.dlq.discard(id);
-    load();
+    try { await api.dlq.discard(id); load(); }
+    catch (err) { setLoadError(err instanceof Error ? err.message : 'Action failed'); }
   };
 
   return (
@@ -64,6 +69,10 @@ export default function DlqPage() {
         </div>
         <button className={styles.refreshBtn} onClick={load}>Refresh</button>
       </div>
+
+      {loadError && (
+        <p style={{ color: '#e05c5c', marginBottom: 16, fontSize: 14 }}>{loadError}</p>
+      )}
 
       {loading ? (
         <p style={{ color: '#8b90a8' }}>Loading…</p>
