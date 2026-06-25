@@ -7,7 +7,10 @@ import com.konductor.platform.routing.EventProcessingService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Sort;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,6 +26,14 @@ public class DeadLetterService {
         this.repository = repository;
         this.objectMapper = objectMapper;
         this.processingService = processingService;
+    }
+
+    public List<DeadLetterEventEntity> findByStatus(String status) {
+        return repository.findByStatusOrderByCreatedAtDesc(status);
+    }
+
+    public List<DeadLetterEventEntity> findAll() {
+        return repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
     public void park(KonductorEvent event, String subscriberId, String reason) {
