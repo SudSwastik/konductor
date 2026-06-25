@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity, UUID> {
     List<SubscriptionEntity> findByEventTypeAndActiveTrue(String eventType);
+    List<SubscriptionEntity> findByActiveTrue();
+    List<SubscriptionEntity> findByActiveFalse();
 }
