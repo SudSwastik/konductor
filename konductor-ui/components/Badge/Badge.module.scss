@@ -1,0 +1,38 @@
+@use '@/styles/variables' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $spacing-sm;
+  border-radius: 100px;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pending {
+  color: $badge-pending;
+  background: $badge-pending-bg;
+}
+
+.approved {
+  color: $badge-approved;
+  background: $badge-approved-bg;
+}
+
+.rejected {
+  color: $badge-rejected;
+  background: $badge-rejected-bg;
+}
+
+.retried {
+  color: $badge-retried;
+  background: $badge-retried-bg;
+}
+
+.discarded {
+  color: $badge-discarded;
+  background: $badge-discarded-bg;
+}

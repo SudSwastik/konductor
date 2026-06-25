@@ -1,0 +1,333 @@
+{
+  "info": {
+    "name": "Konductor API",
+    "description": "Publisher-side event routing platform — publish, subscription management, and DLQ endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "type": "string",
+      "description": "Set this after creating a subscription"
+    },
+    {
+      "key": "dlqId",
+      "value": "",
+      "type": "string",
+      "description": "Set this after querying the DLQ"
+    }
+  ],
+  "item": [
+    {
+      "name": "Publish",
+      "item": [
+        {
+          "name": "Publish Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "publish"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"eventId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n    \"eventType\": \"order.created\",\n    \"eventTimestamp\": \"2026-06-25T10:00:00Z\",\n    \"sourceConfigId\": \"order-service\",\n    \"configType\": \"commerce\",\n    \"schemaVersion\": \"1.0\",\n    \"correlationId\": \"corr-xyz\",\n    \"traceId\": \"trace-abc\"\n  },\n  \"payload\": {\n    \"orderId\": \"ORD-001\",\n    \"amount\": 149.99,\n    \"currency\": \"USD\",\n    \"customerEmail\": \"alice@example.com\"\n  },\n  \"dataRefs\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Publishes a KonductorEvent to the internal Kafka topic. Returns 202 Accepted with the eventId."
+          },
+          "response": [
+            {
+              "name": "202 Accepted",
+              "status": "Accepted",
+              "code": 202,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"eventId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Publish Event — Schema Validation Failure",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "publish"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"eventId\": \"b2c3d4e5-f6a7-8901-bcde-f12345678901\",\n    \"eventType\": \"unregistered.type\",\n    \"eventTimestamp\": \"2026-06-25T10:00:00Z\",\n    \"sourceConfigId\": \"test-service\"\n  },\n  \"payload\": { \"foo\": \"bar\" },\n  \"dataRefs\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Fails with 400 when schema-registry.enabled=true and the event type has no registered schema."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Subscriptions",
+      "item": [
+        {
+          "name": "List All Subscriptions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions?status=ALL",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions"],
+              "query": [{ "key": "status", "value": "ALL" }]
+            },
+            "description": "Returns all subscriptions. Filter by status: ALL | PENDING | APPROVED"
+          }
+        },
+        {
+          "name": "List Pending Subscriptions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions"],
+              "query": [{ "key": "status", "value": "PENDING" }]
+            }
+          }
+        },
+        {
+          "name": "List Approved Subscriptions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions?status=APPROVED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions"],
+              "query": [{ "key": "status", "value": "APPROVED" }]
+            }
+          }
+        },
+        {
+          "name": "Register Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('subscriptionId', json.id); }",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('active is false', () => pm.expect(json.active).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriberId\": \"analytics-service\",\n  \"subscriberName\": \"Analytics Service\",\n  \"eventType\": \"order.created\",\n  \"fieldPaths\": [\"$.orderId\", \"$.amount\", \"$.currency\"],\n  \"outputTopic\": \"analytics-order-events\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Registers a new subscription. Starts with active=false. Sets {{subscriptionId}} variable."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": \"uuid-here\",\n  \"subscriberId\": \"analytics-service\",\n  \"subscriberName\": \"Analytics Service\",\n  \"eventType\": \"order.created\",\n  \"fieldPaths\": [\"$.orderId\", \"$.amount\", \"$.currency\"],\n  \"outputTopic\": \"analytics-order-events\",\n  \"active\": false,\n  \"subscriptionVersion\": 1,\n  \"createdAt\": \"2026-06-25T10:00:00Z\",\n  \"approvedAt\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Approve Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('active is true', () => pm.expect(pm.response.json().active).to.be.true);",
+                  "pm.test('approvedAt set', () => pm.expect(pm.response.json().approvedAt).to.not.be.null);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions/{{subscriptionId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions", "{{subscriptionId}}", "approve"]
+            },
+            "description": "Approves a subscription: sets active=true, approvedAt=now(), bumps subscriptionVersion."
+          }
+        },
+        {
+          "name": "Reject Subscription",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions/{{subscriptionId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions", "{{subscriptionId}}", "reject"]
+            },
+            "description": "Keeps the subscription inactive (active=false)."
+          }
+        },
+        {
+          "name": "Deactivate Subscription",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/subscriptions/{{subscriptionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "subscriptions", "{{subscriptionId}}"]
+            },
+            "description": "Deactivates a subscription (active=false). Returns 204 No Content."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Dead Letter Queue",
+      "item": [
+        {
+          "name": "List All DLQ Events",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.length > 0) { pm.collectionVariables.set('dlqId', json[0].id); }",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq"]
+            },
+            "description": "Returns all DLQ events. Sets {{dlqId}} to the first result."
+          }
+        },
+        {
+          "name": "List DLQ Events — Pending",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq"],
+              "query": [{ "key": "status", "value": "PENDING" }]
+            }
+          }
+        },
+        {
+          "name": "List DLQ Events — Filter by Event Type",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq?eventType=order.created",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq"],
+              "query": [
+                { "key": "eventType", "value": "order.created" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List DLQ Events — Status + Event Type",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq?status=PENDING&eventType=order.created",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq"],
+              "query": [
+                { "key": "status", "value": "PENDING" },
+                { "key": "eventType", "value": "order.created" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Retry DLQ Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq/{{dlqId}}/retry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq", "{{dlqId}}", "retry"]
+            },
+            "description": "Re-runs the routing pipeline for the original event. Bumps retry_count and sets status=RETRIED."
+          }
+        },
+        {
+          "name": "Discard DLQ Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq/{{dlqId}}/discard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq", "{{dlqId}}", "discard"]
+            },
+            "description": "Marks the DLQ event as DISCARDED. No further processing will occur."
+          }
+        }
+      ]
+    }
+  ]
+}

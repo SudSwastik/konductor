@@ -1,0 +1,44 @@
+// Colour palette
+$color-bg: #0f1117;
+$color-surface: #1a1d27;
+$color-surface-raised: #22263a;
+$color-border: #2e3248;
+$color-text-primary: #e8eaf0;
+$color-text-secondary: #8b90a8;
+$color-accent: #6c63ff;
+$color-accent-hover: #5a52e0;
+$color-danger: #e05c5c;
+$color-success: #4caf82;
+$color-warning: #e0a84a;
+
+// Badge colours
+$badge-pending: #e0a84a;
+$badge-pending-bg: rgba(224, 168, 74, 0.12);
+$badge-approved: #4caf82;
+$badge-approved-bg: rgba(76, 175, 130, 0.12);
+$badge-rejected: #e05c5c;
+$badge-rejected-bg: rgba(224, 92, 92, 0.12);
+$badge-retried: #6c63ff;
+$badge-retried-bg: rgba(108, 99, 255, 0.12);
+$badge-discarded: #8b90a8;
+$badge-discarded-bg: rgba(139, 144, 168, 0.12);
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+// Typography
+$font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-mono: 'GeistMono', 'Fira Code', monospace;
+$font-size-sm: 12px;
+$font-size-base: 14px;
+$font-size-md: 16px;
+$font-size-lg: 20px;
+
+// Layout
+$sidebar-width: 220px;
+$border-radius: 6px;
+$border-radius-lg: 10px;

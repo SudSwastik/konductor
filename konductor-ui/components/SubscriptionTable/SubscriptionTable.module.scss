@@ -1,0 +1,60 @@
+@use '@/styles/variables' as *;
+@use '@/styles/mixins' as *;
+
+.wrap {
+  overflow-x: auto;
+}
+
+.table {
+  @include table-base;
+}
+
+.fieldPaths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.path {
+  background: $color-surface-raised;
+  border: 1px solid $color-border;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: $font-mono;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.actions {
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.btn {
+  @include button-base;
+}
+
+.approve {
+  background: rgba($color-success, 0.12);
+  color: $color-success;
+  &:hover:not(:disabled) { background: rgba($color-success, 0.22); }
+}
+
+.reject {
+  background: rgba($color-danger, 0.12);
+  color: $color-danger;
+  &:hover:not(:disabled) { background: rgba($color-danger, 0.22); }
+}
+
+.deactivate {
+  background: $color-surface-raised;
+  color: $color-text-secondary;
+  &:hover:not(:disabled) { background: $color-border; }
+}
+
+.empty {
+  text-align: center;
+  padding: $spacing-xl;
+  color: $color-text-secondary;
+}
