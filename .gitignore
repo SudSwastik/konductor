@@ -60,5 +60,8 @@ spring-shell.log
 application-local.yml
 application-local.properties
 
+# Infra secrets — copy infra/.env.example → infra/.env
+infra/.env
+
 # Md files
 IMPLEMENTATION_PLAN.md
