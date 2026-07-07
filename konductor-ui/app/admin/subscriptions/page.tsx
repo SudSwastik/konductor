@@ -107,6 +107,9 @@ export default function SubscriptionsPage() {
             <Icon name="add" size={18} />
             Add new Subscription
           </button>
+          <Link href="/login" className={styles.logoutBtn} title="Sign out">
+            <Icon name="logout" size={20} />
+          </Link>
         </div>
       </div>
 

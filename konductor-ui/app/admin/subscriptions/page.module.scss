@@ -55,6 +55,23 @@
   @include pill-button-primary;
 }
 
+.logoutBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: $color-surface;
+  color: oklch(0.45 0.03 264);
+  border: 1px solid $color-border;
+  border-radius: $border-radius-pill;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover { border-color: $color-danger; color: $color-danger; }
+}
+
 .sectionHeading {
   margin: 0 0 16px;
   font-size: 20px;
