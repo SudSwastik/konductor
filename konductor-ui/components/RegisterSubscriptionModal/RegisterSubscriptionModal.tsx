@@ -1,11 +1,12 @@
 'use client';
 
-import { FormEvent, KeyboardEvent, MouseEvent, useState } from 'react';
+import { FormEvent, MouseEvent, useState } from 'react';
 import Icon from '@/components/Icon/Icon';
-import { RegisterSubscriptionRequest } from '@/types';
+import { RegisterSubscriptionRequest, Subscription } from '@/types';
 import styles from './RegisterSubscriptionModal.module.scss';
 
 interface Props {
+  subscription?: Subscription | null;
   onClose: () => void;
   onSubmit: (req: RegisterSubscriptionRequest) => Promise<void>;
 }
@@ -21,29 +22,42 @@ const METADATA_FIELDS = [
   'traceId',
 ];
 
-const EMPTY_IDENTITY = { subscriberId: '', subscriberName: '', eventType: '', outputTopic: '' };
+const PAYLOAD_FIELDS = ['order_id', 'amount', 'currency', 'status', 'items', 'customer', 'metadata'];
 
-export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) {
+const METADATA_PREFIX = '$.metadata.';
+const PAYLOAD_PREFIX = '$.payload.';
+
+const slugify = (s: string) =>
+  s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+export default function RegisterSubscriptionModal({ subscription, onClose, onSubmit }: Props) {
+  const isEdit = Boolean(subscription);
   const [step, setStep] = useState<1 | 2>(1);
-  const [identity, setIdentity] = useState(EMPTY_IDENTITY);
-  const [selectedMetadata, setSelectedMetadata] = useState<string[]>([]);
-  const [payloadPaths, setPayloadPaths] = useState<string[]>([]);
-  const [payloadInput, setPayloadInput] = useState('');
+  const [name, setName] = useState(subscription?.subscriberName ?? '');
+  const [type, setType] = useState<'API Callback' | 'Event'>('Event');
+  const [eventType, setEventType] = useState(subscription?.eventType ?? '');
+  const [outputTopic, setOutputTopic] = useState(subscription?.outputTopic ?? '');
+  const [selectedMetadata, setSelectedMetadata] = useState<string[]>(() =>
+    subscription
+      ? subscription.fieldPaths
+          .filter((p) => p.startsWith(METADATA_PREFIX))
+          .map((p) => p.slice(METADATA_PREFIX.length))
+      : [],
+  );
+  const [selectedPayload, setSelectedPayload] = useState<string[]>(() =>
+    subscription
+      ? subscription.fieldPaths
+          .filter((p) => p.startsWith(PAYLOAD_PREFIX))
+          .map((p) => p.slice(PAYLOAD_PREFIX.length))
+          .filter((f) => PAYLOAD_FIELDS.includes(f))
+      : [],
+  );
   const [error, setError] = useState('');
 
   const stop = (e: MouseEvent) => e.stopPropagation();
 
-  const setField = (k: keyof typeof identity, v: string) =>
-    setIdentity((f) => ({ ...f, [k]: v }));
-
-  const identityValid =
-    identity.subscriberId.trim() &&
-    identity.subscriberName.trim() &&
-    identity.eventType.trim() &&
-    identity.outputTopic.trim();
-
   const proceedToFields = () => {
-    if (!identityValid) return;
+    if (!name.trim()) return;
     setError('');
     setStep(2);
   };
@@ -53,38 +67,41 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
       prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field],
     );
 
-  const addPayloadPath = () => {
-    const path = payloadInput.trim();
-    if (!path || payloadPaths.includes(path)) return;
-    setPayloadPaths((prev) => [...prev, path]);
-    setPayloadInput('');
-  };
+  const togglePayload = (field: string) =>
+    setSelectedPayload((prev) =>
+      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field],
+    );
 
-  const removePayloadPath = (path: string) =>
-    setPayloadPaths((prev) => prev.filter((p) => p !== path));
-
-  const handlePayloadKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addPayloadPath();
-    }
-  };
-
-  const fieldCount = selectedMetadata.length + payloadPaths.length;
+  const fieldCount = selectedMetadata.length + selectedPayload.length;
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
+    if (!eventType.trim() || !outputTopic.trim()) {
+      setError('Event type and output topic are required.');
+      return;
+    }
     if (fieldCount === 0) {
       setError('Select at least one field.');
       return;
     }
     setError('');
     const fieldPaths = [
-      ...selectedMetadata.map((f) => `$.metadata.${f}`),
-      ...payloadPaths,
+      ...selectedMetadata.map((f) => `${METADATA_PREFIX}${f}`),
+      ...selectedPayload.map((f) => `${PAYLOAD_PREFIX}${f}`),
     ];
+    if (isEdit) {
+      // No backend update endpoint yet — UI-only for now.
+      onClose();
+      return;
+    }
     try {
-      await onSubmit({ ...identity, fieldPaths });
+      await onSubmit({
+        subscriberId: slugify(name),
+        subscriberName: name.trim(),
+        eventType: eventType.trim(),
+        outputTopic: outputTopic.trim(),
+        fieldPaths,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     }
@@ -97,9 +114,9 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
           <div className={styles.header}>
             <div className={styles.headerLeft}>
               <div className={styles.icon}>
-                <Icon name="add" size={23} />
+                <Icon name={isEdit ? 'edit' : 'add'} size={23} />
               </div>
-              <h2 className={styles.title}>Add new subscription</h2>
+              <h2 className={styles.title}>{isEdit ? 'Edit subscription' : 'Add new subscription'}</h2>
             </div>
             <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
               <Icon name="close" size={20} />
@@ -108,41 +125,41 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <div className={styles.grid}>
-            <div className={styles.field}>
-              <label>Subscriber ID</label>
-              <input
-                value={identity.subscriberId}
-                onChange={(e) => setField('subscriberId', e.target.value)}
-                placeholder="e.g. analytics-service"
-              />
-            </div>
-            <div className={styles.field}>
-              <label>Subscriber Name</label>
-              <input
-                value={identity.subscriberName}
-                onChange={(e) => setField('subscriberName', e.target.value)}
-                placeholder="e.g. Analytics Service"
-              />
-            </div>
-          </div>
-
           <div className={styles.field}>
-            <label>Event Type</label>
+            <label>Subscription name</label>
             <input
-              value={identity.eventType}
-              onChange={(e) => setField('eventType', e.target.value)}
-              placeholder="e.g. order.created"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Order Fulfillment Sync"
             />
           </div>
 
           <div className={styles.field}>
-            <label>Output Topic</label>
-            <input
-              value={identity.outputTopic}
-              onChange={(e) => setField('outputTopic', e.target.value)}
-              placeholder="e.g. my-service-events"
-            />
+            <label>Type</label>
+            <div className={styles.typeGrid}>
+              <button
+                type="button"
+                className={`${styles.typeOption} ${type === 'API Callback' ? styles.typeOptionSelected : ''}`}
+                onClick={() => setType('API Callback')}
+              >
+                <Icon name="webhook" size={20} />
+                <div>
+                  API Callback
+                  <div className={styles.typeSub}>POST to a URL</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                className={`${styles.typeOption} ${type === 'Event' ? styles.typeOptionSelected : ''}`}
+                onClick={() => setType('Event')}
+              >
+                <Icon name="bolt" size={20} />
+                <div>
+                  Event
+                  <div className={styles.typeSub}>Internal consumer</div>
+                </div>
+              </button>
+            </div>
           </div>
 
           <div className={styles.footer}>
@@ -152,7 +169,7 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
             <button
               type="button"
               className={styles.submitBtn}
-              disabled={!identityValid}
+              disabled={!name.trim()}
               onClick={proceedToFields}
             >
               Next
@@ -174,6 +191,25 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
+
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label>Event Type</label>
+              <input
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
+                placeholder="e.g. order.created"
+              />
+            </div>
+            <div className={styles.field}>
+              <label>Output Topic</label>
+              <input
+                value={outputTopic}
+                onChange={(e) => setOutputTopic(e.target.value)}
+                placeholder="e.g. my-service-events"
+              />
+            </div>
+          </div>
 
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>
@@ -201,31 +237,26 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
 
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>
-              Payload <span>(JSONPath expressions)</span>
+              Payload <span>({PAYLOAD_FIELDS.length} fields)</span>
             </h3>
-            <div className={styles.pathInputRow}>
-              <input
-                value={payloadInput}
-                onChange={(e) => setPayloadInput(e.target.value)}
-                onKeyDown={handlePayloadKeyDown}
-                placeholder="$.payload.orderId"
-              />
-              <button type="button" className={styles.addBtn} onClick={addPayloadPath}>
-                Add
-              </button>
+            <div className={styles.fieldGrid}>
+              {PAYLOAD_FIELDS.map((f) => {
+                const selected = selectedPayload.includes(f);
+                return (
+                  <button
+                    type="button"
+                    key={f}
+                    className={`${styles.fieldOption} ${selected ? styles.fieldOptionSelected : ''}`}
+                    onClick={() => togglePayload(f)}
+                  >
+                    <span className={styles.checkbox}>
+                      {selected && <Icon name="check" size={13} />}
+                    </span>
+                    {f}
+                  </button>
+                );
+              })}
             </div>
-            {payloadPaths.length > 0 && (
-              <div className={styles.chips}>
-                {payloadPaths.map((p) => (
-                  <span key={p} className={styles.chip}>
-                    {p}
-                    <button type="button" onClick={() => removePayloadPath(p)} aria-label={`Remove ${p}`}>
-                      &times;
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className={styles.selectionSummary}>
@@ -238,7 +269,7 @@ export default function RegisterSubscriptionModal({ onClose, onSubmit }: Props) 
               Cancel
             </button>
             <button type="button" className={styles.submitBtn} onClick={handleCreate}>
-              Create subscription
+              {isEdit ? 'Save changes' : 'Create subscription'}
             </button>
           </div>
         </div>
