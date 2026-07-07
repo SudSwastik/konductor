@@ -1,0 +1,95 @@
+@use '@/styles/variables' as *;
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+}
+
+.brand {
+  flex: 1;
+  background: oklch(0.35 0.12 264);
+  color: #fff;
+  padding: 56px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+
+  @media (max-width: 860px) {
+    display: none;
+  }
+}
+
+.brandGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 15%, oklch(0.55 0.2 264 / 0.55), transparent 55%);
+}
+
+.brandLogo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.brandLogoIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: $color-accent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandCopy {
+  position: relative;
+}
+
+.brandTitle {
+  margin: 0;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+.brandSubtitle {
+  margin: 20px 0 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: oklch(0.92 0.03 264 / 0.85);
+  max-width: 380px;
+}
+
+.brandFooter {
+  position: relative;
+  font-size: 13px;
+  color: oklch(0.92 0.02 264 / 0.6);
+}
+
+.formPanel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: $color-surface;
+}
+
+.formInner {
+  width: 100%;
+  max-width: 400px;
+  animation: scaleIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}

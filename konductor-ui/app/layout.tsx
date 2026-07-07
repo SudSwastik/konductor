@@ -21,11 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>
-        <main style={{ minHeight: '100vh', maxWidth: 1280, margin: '0 auto', padding: '34px 40px 72px' }}>
-          {children}
-        </main>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

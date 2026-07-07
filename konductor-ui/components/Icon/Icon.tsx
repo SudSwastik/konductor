@@ -14,7 +14,10 @@ export type IconName =
   | 'arrow_back'
   | 'description'
   | 'check_circle'
-  | 'inbox';
+  | 'inbox'
+  | 'error'
+  | 'logout'
+  | 'shield_person';
 
 interface Props {
   name: IconName;
