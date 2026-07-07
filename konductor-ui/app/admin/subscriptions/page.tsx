@@ -27,6 +27,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [showRegister, setShowRegister] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [detailsId, setDetailsId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -62,6 +63,7 @@ export default function SubscriptionsPage() {
   }, [subscriptions]);
 
   const detailsSub = detailsId ? subscriptions.find((s) => s.id === detailsId) ?? null : null;
+  const editingSub = editingId ? subscriptions.find((s) => s.id === editingId) ?? null : null;
 
   const handleApprove = async (id: string) => {
     try { await api.subscriptions.approve(id); load(); }
@@ -135,14 +137,16 @@ export default function SubscriptionsPage() {
         subscriptions={filtered}
         loading={loading}
         onView={(sub) => setDetailsId(sub.id)}
+        onEdit={(sub) => setEditingId(sub.id)}
         onApprove={handleApprove}
         onReject={handleReject}
         onDeactivate={handleDeactivate}
       />
 
-      {showRegister && (
+      {(showRegister || editingSub) && (
         <RegisterSubscriptionModal
-          onClose={() => setShowRegister(false)}
+          subscription={editingSub}
+          onClose={() => { setShowRegister(false); setEditingId(null); }}
           onSubmit={handleRegister}
         />
       )}
@@ -151,6 +155,7 @@ export default function SubscriptionsPage() {
         <SubscriptionDetailsModal
           subscription={detailsSub}
           onClose={() => setDetailsId(null)}
+          onEdit={(sub) => setEditingId(sub.id)}
           onApprove={handleApprove}
           onReject={handleReject}
           onDeactivate={handleDeactivate}

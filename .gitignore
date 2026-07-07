@@ -65,3 +65,6 @@ infra/.env
 
 # Md files
 IMPLEMENTATION_PLAN.md
+
+# Docs (design mockups / scratch exports)
+docs/

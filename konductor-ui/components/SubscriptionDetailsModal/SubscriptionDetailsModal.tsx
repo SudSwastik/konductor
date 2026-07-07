@@ -8,6 +8,7 @@ import styles from './SubscriptionDetailsModal.module.scss';
 interface Props {
   subscription: Subscription;
   onClose: () => void;
+  onEdit: (sub: Subscription) => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onDeactivate: (id: string) => void;
@@ -22,6 +23,7 @@ const STATUS_LABEL: Record<string, string> = {
 export default function SubscriptionDetailsModal({
   subscription: sub,
   onClose,
+  onEdit,
   onApprove,
   onReject,
   onDeactivate,
@@ -89,6 +91,13 @@ export default function SubscriptionDetailsModal({
         </div>
 
         <div className={styles.footer}>
+          <button
+            className={styles.editBtn}
+            onClick={() => { onEdit(sub); onClose(); }}
+          >
+            <Icon name="edit" size={16} />
+            Edit subscription
+          </button>
           {status === 'PENDING' && (
             <>
               <button

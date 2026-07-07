@@ -8,6 +8,7 @@ import styles from './SubscriptionTable.module.scss';
 interface Props {
   subscriptions: Subscription[];
   onView: (sub: Subscription) => void;
+  onEdit: (sub: Subscription) => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onDeactivate: (id: string) => void;
@@ -23,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 export default function SubscriptionTable({
   subscriptions,
   onView,
+  onEdit,
   onApprove,
   onReject,
   onDeactivate,
@@ -90,6 +92,9 @@ export default function SubscriptionTable({
             <div className={`${styles.cell} ${styles.actionsCell}`}>
               <button className={styles.iconBtn} title="View details" onClick={() => onView(sub)}>
                 <Icon name="visibility" size={17} />
+              </button>
+              <button className={styles.iconBtn} title="Edit" onClick={() => onEdit(sub)}>
+                <Icon name="edit" size={17} />
               </button>
               {status === 'PENDING' && (
                 <>

@@ -121,6 +121,12 @@
   border-top: 1px solid $color-border;
 }
 
+.editBtn {
+  @include pill-button-outline;
+  padding: 10px 18px;
+  margin-right: auto;
+}
+
 .approveBtn {
   @include pill-button;
   padding: 10px 20px;
