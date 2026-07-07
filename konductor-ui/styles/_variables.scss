@@ -1,27 +1,36 @@
-// Colour palette
-$color-bg: #0f1117;
-$color-surface: #1a1d27;
-$color-surface-raised: #22263a;
-$color-border: #2e3248;
-$color-text-primary: #e8eaf0;
-$color-text-secondary: #8b90a8;
-$color-accent: #6c63ff;
-$color-accent-hover: #5a52e0;
-$color-danger: #e05c5c;
-$color-success: #4caf82;
-$color-warning: #e0a84a;
+// Colour palette (mirrors docs/Data Subscriptions.dc.html)
+$color-bg: oklch(0.98 0.004 264);
+$color-surface: #fff;
+$color-surface-raised: oklch(0.985 0.004 264);
+$color-border: oklch(0.92 0.006 264);
+$color-border-light: oklch(0.955 0.005 264);
+$color-text-primary: oklch(0.27 0.03 264);
+$color-text-secondary: oklch(0.55 0.03 264);
+$color-text-muted: oklch(0.6 0.03 264);
+$color-accent: oklch(0.55 0.2 264);
+$color-accent-hover: oklch(0.5 0.2 264);
+$color-accent-bg: oklch(0.95 0.035 264);
+$color-accent-text: oklch(0.45 0.18 264);
+$color-danger: oklch(0.52 0.19 25);
+$color-danger-bg: oklch(0.96 0.05 25);
+$color-success: oklch(0.5 0.14 155);
+$color-success-bg: oklch(0.95 0.05 155);
+$color-warning: oklch(0.56 0.13 65);
+$color-warning-bg: oklch(0.96 0.06 75);
+$color-violet: oklch(0.5 0.18 300);
+$color-violet-bg: oklch(0.96 0.045 300);
 
 // Badge colours
-$badge-pending: #e0a84a;
-$badge-pending-bg: rgba(224, 168, 74, 0.12);
-$badge-approved: #4caf82;
-$badge-approved-bg: rgba(76, 175, 130, 0.12);
-$badge-rejected: #e05c5c;
-$badge-rejected-bg: rgba(224, 92, 92, 0.12);
-$badge-retried: #6c63ff;
-$badge-retried-bg: rgba(108, 99, 255, 0.12);
-$badge-discarded: #8b90a8;
-$badge-discarded-bg: rgba(139, 144, 168, 0.12);
+$badge-pending: $color-warning;
+$badge-pending-bg: $color-warning-bg;
+$badge-approved: $color-success;
+$badge-approved-bg: $color-success-bg;
+$badge-rejected: $color-danger;
+$badge-rejected-bg: $color-danger-bg;
+$badge-retried: $color-accent;
+$badge-retried-bg: $color-accent-bg;
+$badge-discarded: oklch(0.58 0.02 264);
+$badge-discarded-bg: oklch(0.965 0.006 264);
 
 // Spacing
 $spacing-xs: 4px;
@@ -31,8 +40,8 @@ $spacing-lg: 24px;
 $spacing-xl: 32px;
 
 // Typography
-$font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-$font-mono: 'GeistMono', 'Fira Code', monospace;
+$font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+$font-mono: 'DM Mono', 'GeistMono', 'Fira Code', monospace;
 $font-size-sm: 12px;
 $font-size-base: 14px;
 $font-size-md: 16px;
@@ -40,5 +49,14 @@ $font-size-lg: 20px;
 
 // Layout
 $sidebar-width: 220px;
-$border-radius: 6px;
-$border-radius-lg: 10px;
+$content-max-width: 1280px;
+$border-radius: 9px;
+$border-radius-lg: 14px;
+$border-radius-xl: 22px;
+$border-radius-pill: 999px;
+
+// Shadows
+$shadow-card: 0 1px 2px oklch(0.5 0.05 264 / 0.04);
+$shadow-card-lg: 0 1px 3px oklch(0.5 0.05 264 / 0.05);
+$shadow-modal: 0 30px 70px -20px oklch(0.2 0.1 264 / 0.5);
+$shadow-accent-btn: 0 6px 16px -6px oklch(0.55 0.2 264 / 0.6);

@@ -3,36 +3,39 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px $spacing-sm;
-  border-radius: 100px;
+  padding: 4px 10px;
+  border-radius: $border-radius-pill;
   font-size: $font-size-sm;
   font-weight: 600;
   white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+}
+
+.plain {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .pending {
-  color: $badge-pending;
-  background: $badge-pending-bg;
+  &.badge { color: $badge-pending; background: $badge-pending-bg; }
+  &.plain { color: $badge-pending; }
 }
 
 .approved {
-  color: $badge-approved;
-  background: $badge-approved-bg;
+  &.badge { color: $badge-approved; background: $badge-approved-bg; }
+  &.plain { color: $badge-approved; }
 }
 
 .rejected {
-  color: $badge-rejected;
-  background: $badge-rejected-bg;
+  &.badge { color: $badge-rejected; background: $badge-rejected-bg; }
+  &.plain { color: $badge-rejected; }
 }
 
 .retried {
-  color: $badge-retried;
-  background: $badge-retried-bg;
+  &.badge { color: $badge-retried; background: $badge-retried-bg; }
+  &.plain { color: $badge-retried; }
 }
 
 .discarded {
-  color: $badge-discarded;
-  background: $badge-discarded-bg;
+  &.badge { color: $badge-discarded; background: $badge-discarded-bg; }
+  &.plain { color: $badge-discarded; }
 }

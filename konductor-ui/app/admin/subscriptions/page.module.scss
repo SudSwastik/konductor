@@ -1,124 +1,88 @@
 @use '@/styles/variables' as *;
 @use '@/styles/mixins' as *;
 
-.header {
+.breadcrumb {
   display: flex;
   align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: $color-text-muted;
+  margin-bottom: 8px;
+
+  .material-symbols-rounded { font-size: 16px; }
+
+  .sep { opacity: 0.5; }
+
+  .current { color: $color-accent-text; }
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: $spacing-lg;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
 }
 
 .title {
-  font-size: $font-size-lg;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.subtitle {
+  margin-top: 10px;
+  font-size: 14px;
+  color: $color-text-secondary;
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.eventsBtn {
+  @include pill-button-outline;
+}
+
+.newBtn {
+  @include pill-button-primary;
+}
+
+.sectionHeading {
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .tabs {
   display: flex;
   gap: $spacing-xs;
   margin-bottom: $spacing-lg;
-  border-bottom: 1px solid $color-border;
-  padding-bottom: -1px;
 }
 
 .tab {
   @include button-base;
-  background: none;
+  background: $color-surface;
   color: $color-text-secondary;
-  border-radius: 0;
-  padding: $spacing-sm $spacing-md;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-pill;
+  padding: 7px 16px;
 
-  &:hover { color: $color-text-primary; }
+  &:hover { border-color: $color-accent; color: $color-accent-text; }
 
   &.activeTab {
-    color: $color-accent;
-    border-bottom-color: $color-accent;
+    background: $color-accent-bg;
+    color: $color-accent-text;
+    border-color: $color-accent;
   }
-}
-
-.newBtn {
-  @include button-base;
-  background: $color-accent;
-  color: #fff;
-  &:hover { background: $color-accent-hover; }
-}
-
-// Modal / drawer form
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal {
-  @include card;
-  width: 480px;
-  max-width: calc(100vw - 32px);
-}
-
-.modalTitle {
-  font-size: $font-size-md;
-  font-weight: 600;
-  margin-bottom: $spacing-lg;
-}
-
-.field {
-  margin-bottom: $spacing-md;
-
-  label {
-    display: block;
-    font-size: $font-size-sm;
-    color: $color-text-secondary;
-    margin-bottom: $spacing-xs;
-  }
-
-  input, textarea {
-    width: 100%;
-    background: $color-bg;
-    border: 1px solid $color-border;
-    border-radius: $border-radius;
-    padding: $spacing-sm $spacing-md;
-    color: $color-text-primary;
-    outline: none;
-    transition: border-color 0.15s;
-
-    &:focus { border-color: $color-accent; }
-  }
-
-  textarea { resize: vertical; min-height: 80px; }
-}
-
-.hint {
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
-  margin-top: $spacing-xs;
-}
-
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: $spacing-sm;
-  margin-top: $spacing-lg;
-}
-
-.cancelBtn {
-  @include button-base;
-  background: $color-surface-raised;
-  color: $color-text-secondary;
-  &:hover { background: $color-border; }
-}
-
-.submitBtn {
-  @include button-base;
-  background: $color-accent;
-  color: #fff;
-  &:hover { background: $color-accent-hover; }
 }
 
 .error {

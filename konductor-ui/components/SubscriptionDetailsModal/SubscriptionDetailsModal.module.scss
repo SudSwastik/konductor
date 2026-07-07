@@ -1,0 +1,143 @@
+@use '@/styles/variables' as *;
+@use '@/styles/mixins' as *;
+
+.overlay {
+  @include modal-overlay;
+}
+
+.modal {
+  @include modal-card(480px);
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-md;
+  padding: 24px 26px;
+  border-bottom: 1px solid $color-border;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.closeBtn {
+  @include icon-button;
+  border: none;
+  flex-shrink: 0;
+}
+
+.body {
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+.rowLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.value {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.active { color: $color-success; }
+.pending { color: $color-warning; }
+.disabled { color: oklch(0.58 0.02 264); }
+
+.mono {
+  font-family: $font-mono;
+  font-size: 12.5px;
+  color: $color-text-primary;
+  text-align: right;
+  word-break: break-all;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eventChip {
+  font-family: $font-mono;
+  font-size: 12px;
+  font-weight: 600;
+  background: $color-accent-bg;
+  color: $color-accent-text;
+  padding: 4px 10px;
+  border-radius: $border-radius;
+}
+
+.fileChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  background: $color-accent-bg;
+  padding: 4px 9px;
+  border-radius: $border-radius;
+  color: $color-accent-text;
+}
+
+.noFiles {
+  font-size: 12.5px;
+  color: $color-text-muted;
+  font-style: italic;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  padding: 18px 26px;
+  background: $color-surface-raised;
+  border-top: 1px solid $color-border;
+}
+
+.approveBtn {
+  @include pill-button;
+  padding: 10px 20px;
+  background: $color-success-bg;
+  color: $color-success;
+  &:hover { background: oklch(0.92 0.07 155); }
+}
+
+.rejectBtn {
+  @include pill-button;
+  padding: 10px 20px;
+  background: $color-danger-bg;
+  color: $color-danger;
+  &:hover { background: oklch(0.93 0.08 25); }
+}
+
+.deactivateBtn {
+  @include pill-button-outline;
+  padding: 10px 18px;
+}
