@@ -1,60 +1,200 @@
 @use '@/styles/variables' as *;
-@use '@/styles/mixins' as *;
+
+$cols: 1.5fr .95fr .7fr 1.9fr .7fr .85fr 120px;
 
 .wrap {
-  overflow-x: auto;
-}
-
-.table {
-  @include table-base;
-}
-
-.fieldPaths {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-xs;
-}
-
-.path {
-  background: $color-surface-raised;
+  background: $color-surface;
   border: 1px solid $color-border;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-family: $font-mono;
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  overflow-x: auto;
+  box-shadow: $shadow-card-lg;
 }
 
-.actions {
-  display: flex;
-  gap: $spacing-xs;
-  flex-wrap: wrap;
-}
-
-.btn {
-  @include button-base;
-}
-
-.approve {
-  background: rgba($color-success, 0.12);
-  color: $color-success;
-  &:hover:not(:disabled) { background: rgba($color-success, 0.22); }
-}
-
-.reject {
-  background: rgba($color-danger, 0.12);
-  color: $color-danger;
-  &:hover:not(:disabled) { background: rgba($color-danger, 0.22); }
-}
-
-.deactivate {
+.headerRow {
+  display: grid;
+  grid-template-columns: $cols;
   background: $color-surface-raised;
+  border-bottom: 1px solid $color-border;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  min-width: 760px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: $cols;
+  border-bottom: 1px solid $color-border-light;
+  min-width: 760px;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $color-surface-raised; }
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 12px;
+  min-height: 62px;
+}
+
+.headerRow .cell { padding: 14px 12px; }
+
+.nameCell {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  gap: 3px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.subId {
+  font-family: $font-mono;
+  font-size: 11px;
+  color: $color-text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.typePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: $border-radius-pill;
+  background: $color-violet-bg;
+  color: $color-violet;
+  white-space: nowrap;
+}
+
+.fieldsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: $border-radius-pill;
+  background: $color-accent-bg;
+  color: $color-accent;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+
+  &:hover { background: oklch(0.92 0.05 264); }
+}
+
+.triggersCell {
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: $border-radius-pill;
+  font-size: 10px;
+  font-weight: 600;
+  background: $color-surface-raised;
+  color: oklch(0.46 0.04 264);
+  white-space: nowrap;
+}
+
+.chipMono {
+  font-family: $font-mono;
+}
+
+.versionPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: $border-radius-pill;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: $color-surface-raised;
+  color: oklch(0.42 0.05 264);
+}
+
+.status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.active { color: $color-success; }
+.pending { color: $color-warning; }
+.disabled { color: oklch(0.58 0.02 264); }
+
+.actionsCell {
+  gap: 6px;
+}
+
+.iconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: $border-radius;
+  border: 1px solid $color-border;
+  background: $color-surface;
   color: $color-text-secondary;
-  &:hover:not(:disabled) { background: $color-border; }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: $color-accent-bg;
+    color: $color-accent;
+    border-color: $color-accent;
+  }
 }
 
 .empty {
   text-align: center;
-  padding: $spacing-xl;
-  color: $color-text-secondary;
+  padding: 56px 20px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-xl;
+  color: $color-text-muted;
+
+  .material-symbols-rounded { color: oklch(0.8 0.02 264); }
+}
+
+.emptyTitle {
+  margin-top: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text-primary;
+}
+
+.emptyHint {
+  margin-top: 4px;
+  font-size: 13px;
 }

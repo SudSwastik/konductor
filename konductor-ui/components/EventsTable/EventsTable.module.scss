@@ -1,0 +1,78 @@
+@use '@/styles/variables' as *;
+
+$cols: 1.6fr 1.6fr .8fr .9fr;
+
+.wrap {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-xl;
+  overflow: hidden;
+  overflow-x: auto;
+  box-shadow: $shadow-card-lg;
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: $cols;
+  gap: 14px;
+  padding: 14px 22px;
+  background: $color-surface-raised;
+  border-bottom: 1px solid $color-border;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  min-width: 560px;
+}
+
+.deliveryHead {
+  text-align: right;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: $cols;
+  gap: 14px;
+  padding: 14px 22px;
+  border-bottom: 1px solid $color-border-light;
+  align-items: center;
+  min-width: 560px;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $color-surface-raised; }
+}
+
+.event {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: $font-mono;
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(0.35 0.05 264);
+
+  .material-symbols-rounded { color: $color-violet; }
+}
+
+.subscriber {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: oklch(0.4 0.03 264);
+}
+
+.time {
+  font-family: $font-mono;
+  font-size: 12.5px;
+  color: $color-text-muted;
+}
+
+.delivery {
+  text-align: right;
+}
+
+.empty {
+  text-align: center;
+  padding: $spacing-xl;
+  color: $color-text-secondary;
+}
