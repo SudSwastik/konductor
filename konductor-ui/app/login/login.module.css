@@ -1,0 +1,215 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 47.65625% 1fr;
+  background: #ffffff;
+  color: #252836;
+  overflow-x: hidden;
+}
+
+.brandPanel {
+  position: relative;
+  min-height: 100vh;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px 52px;
+  background: #302973;
+  color: #ffffff;
+}
+
+.brandGlow {
+  position: absolute;
+  top: 70px;
+  left: calc(100% - 220px);
+  width: 360px;
+  height: 260px;
+  border-radius: 999px;
+  background: #5940d1;
+  opacity: 0.38;
+}
+
+.brandMark,
+.brandCopy,
+.copyright {
+  position: relative;
+  z-index: 1;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.logo {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #5940d1;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.brandCopy h1 {
+  font-size: 38px;
+  line-height: 1.1;
+  font-weight: 400;
+}
+
+.brandCopy p {
+  max-width: 380px;
+  margin-top: 20px;
+  color: #e5e5ff;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.copyright {
+  color: #c7c7e5;
+  font-size: 13px;
+}
+
+.formPanel {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.loginForm {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 272px;
+  margin-left: 140px;
+}
+
+.header {
+  margin-bottom: 30px;
+}
+
+.header h2 {
+  font-size: 27px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.header p {
+  margin-top: 10px;
+  color: #666e80;
+  font-size: 14px;
+}
+
+.field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 7px;
+  color: #666e80;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.field input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #e0e4ec;
+  border-radius: 10px;
+  padding: 0 14px;
+  color: #252836;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: #6547d9;
+}
+
+.field input::placeholder {
+  color: #666e80;
+}
+
+.error {
+  margin-top: 4px;
+  color: #b3261e;
+  font-size: 12px;
+}
+
+.success {
+  margin-top: 4px;
+  color: #147a45;
+  font-size: 12px;
+}
+
+.primaryButton {
+  width: 100%;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 21px;
+  padding: 13px;
+  background: #5940d1;
+  color: #ffffff;
+  box-shadow: 0 6px 16px -6px rgba(101, 71, 217, 0.6);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.primaryButton:hover {
+  background: #4f39bd;
+}
+
+.switchAuth {
+  margin-top: 22px;
+  color: #666e80;
+  text-align: center;
+  font-size: 13px;
+}
+
+.switchAuth a {
+  color: #666e80;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .brandPanel {
+    overflow: hidden;
+    min-height: 320px;
+    padding: 32px 24px;
+  }
+
+  .brandGlow {
+    top: 44px;
+    left: auto;
+    right: -120px;
+  }
+
+  .brandCopy h1 {
+    font-size: 32px;
+  }
+
+  .formPanel {
+    min-height: auto;
+    padding: 40px 24px;
+  }
+
+  .loginForm {
+    margin: 0 auto;
+  }
+}
