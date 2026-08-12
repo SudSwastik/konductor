@@ -6,7 +6,7 @@ Konductor is a flat multi-project workspace for building an event subscription p
 
 - `konductor-ui/` - Next.js UI for signup and future subscription management flows.
 - `publisher/` - planned service for publishing source events.
-- `projector/` - planned service for consuming source events and projecting them downstream.
+- `projector/` - Spring Boot scaffold for consuming source events and projecting them downstream.
 - `consumer/` - planned service for consumer-side processing.
 - `docs/` - planned architecture notes, contracts, and operations documentation.
 
