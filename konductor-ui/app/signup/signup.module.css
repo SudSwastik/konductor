@@ -1,0 +1,331 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 47.65625% 1fr;
+  background: #ffffff;
+  color: #252836;
+  overflow-x: hidden;
+}
+
+.brandPanel {
+  position: relative;
+  min-height: 100vh;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px 52px;
+  background: #302973;
+  color: #ffffff;
+}
+
+.brandGlow {
+  position: absolute;
+  top: 70px;
+  left: calc(100% - 220px);
+  width: 360px;
+  height: 260px;
+  border-radius: 999px;
+  background: #5940d1;
+  opacity: 0.38;
+}
+
+.brandMark,
+.brandCopy,
+.copyright {
+  position: relative;
+  z-index: 1;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.logo {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #5940d1;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.brandCopy h1 {
+  font-size: 38px;
+  line-height: 1.1;
+  font-weight: 400;
+}
+
+.brandCopy p {
+  max-width: 380px;
+  margin-top: 20px;
+  color: #e5e5ff;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.copyright {
+  color: #c7c7e5;
+  font-size: 13px;
+}
+
+.formPanel {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.signupForm {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 250px;
+  margin-left: 140px;
+}
+
+.progress {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 25px;
+}
+
+.progress span {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: #6547d9;
+}
+
+.progress span:last-child {
+  background: #e4e5ec;
+}
+
+.progress[data-step="2"] span:last-child {
+  background: #6547d9;
+}
+
+.header {
+  margin-bottom: 25px;
+}
+
+.header h2 {
+  font-size: 27px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.header p {
+  margin-top: 10px;
+  color: #666e80;
+  font-size: 14px;
+}
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 7px;
+  color: #666e80;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.field input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #e0e4ec;
+  border-radius: 10px;
+  padding: 0 14px;
+  color: #252836;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: #6547d9;
+}
+
+.field input::placeholder {
+  color: #666e80;
+}
+
+.error {
+  margin-top: 4px;
+  color: #b3261e;
+  font-size: 12px;
+}
+
+.scopeList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 22px;
+}
+
+.scopeCard {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1.5px solid #e0e4ec;
+  border-radius: 13px;
+  padding: 12px 14px;
+  background: #ffffff;
+  color: #252836;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.scopeCard[data-selected="true"] {
+  border-color: #5940d1;
+  background: #f4f1ff;
+  color: #5940d1;
+}
+
+.scopeIcon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #f4f1ff;
+  color: #5940d1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.scopeText {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.scopeText span:first-child {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.scopeText span:last-child {
+  color: #666e80;
+  font-size: 12px;
+}
+
+.scopeCheck {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #d0d4df;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scopeCard[data-selected="true"] .scopeCheck {
+  border-color: #5940d1;
+  background: #5940d1;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.secondaryButton {
+  border: 1px solid #e0e4ec;
+  border-radius: 21px;
+  padding: 13px 20px;
+  background: #ffffff;
+  color: #252836;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.primaryButton {
+  width: 100%;
+  margin-top: 15px;
+  border: 0;
+  border-radius: 21px;
+  padding: 13px;
+  background: #5940d1;
+  color: #ffffff;
+  box-shadow: 0 6px 16px -6px rgba(101, 71, 217, 0.6);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.actions .primaryButton {
+  flex: 1;
+  margin-top: 0;
+}
+
+.primaryButton:hover {
+  background: #4f39bd;
+}
+
+.switchAuth {
+  margin-top: 22px;
+  color: #666e80;
+  text-align: center;
+  font-size: 13px;
+}
+
+.switchAuth a {
+  color: #666e80;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .brandPanel {
+    overflow: hidden;
+    min-height: 320px;
+    padding: 32px 24px;
+  }
+
+  .brandGlow {
+    top: 44px;
+    left: auto;
+    right: -120px;
+  }
+
+  .brandCopy h1 {
+    font-size: 32px;
+  }
+
+  .formPanel {
+    min-height: auto;
+    padding: 40px 24px;
+  }
+
+  .signupForm {
+    margin: 0 auto;
+  }
+}
