@@ -1,7 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { signUp } from "aws-amplify/auth";
+import { configureAmplify } from "@/lib/amplify";
 import styles from "./signup.module.css";
+
+type AccessScope = "read" | "write" | "admin";
 
 const scopes = [
   {
@@ -19,20 +23,27 @@ const scopes = [
   {
     key: "admin",
     label: "Admin",
-    description: "Full access & member control",
+    description: "Request full access review",
     icon: "A",
   },
-];
+] satisfies Array<{
+  key: AccessScope;
+  label: string;
+  description: string;
+  icon: string;
+}>;
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
-  const [selectedScope, setSelectedScope] = useState("read");
+  const [selectedScope, setSelectedScope] = useState<AccessScope>("read");
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -47,11 +58,45 @@ export default function SignupPage() {
       return;
     }
 
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
     setStep(2);
   }
 
-  function submitSignup(event: FormEvent<HTMLFormElement>) {
+  async function submitSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+    setSuccessMessage("");
+    setIsSubmitting(true);
+
+    try {
+      configureAmplify();
+
+      await signUp({
+        username: form.email,
+        password: form.password,
+        options: {
+          userAttributes: {
+            email: form.email,
+            name: form.name,
+          },
+          clientMetadata: {
+            requestedScope: selectedScope,
+          },
+        },
+      });
+
+      setSuccessMessage(
+        `Account created. Check your email to verify it. Your ${selectedScope} access request will be reviewed.`,
+      );
+    } catch (caughtError) {
+      setError(getSignupErrorMessage(caughtError));
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -122,7 +167,7 @@ export default function SignupPage() {
                 <input
                   type="password"
                   name="password"
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   value={form.password}
                   onChange={(event) =>
                     updateField("password", event.target.value)
@@ -132,15 +177,15 @@ export default function SignupPage() {
 
               {error ? <p className={styles.error}>{error}</p> : null}
 
-              <button className={styles.primaryButton} type="submit">
-                Next
-              </button>
+                <button className={styles.primaryButton} type="submit">
+                  Next
+                </button>
             </>
           ) : (
             <>
               <div className={styles.header}>
-                <h2 id="signup-title">Choose access scope</h2>
-                <p>Step 2 of 2 - pick your permission level.</p>
+                <h2 id="signup-title">Request access level</h2>
+                <p>Step 2 of 2 - choose the access you want reviewed.</p>
               </div>
 
               <div className={styles.scopeList}>
@@ -177,11 +222,16 @@ export default function SignupPage() {
                   Back
                 </button>
                 <button className={styles.primaryButton} type="submit">
-                  Create account
+                  {isSubmitting ? "Creating..." : "Create account"}
                 </button>
               </div>
             </>
           )}
+
+          {step === 2 && error ? <p className={styles.error}>{error}</p> : null}
+          {successMessage ? (
+            <p className={styles.success}>{successMessage}</p>
+          ) : null}
 
           <p className={styles.switchAuth}>
             Already have an account? <a href="/login">Sign in</a>
@@ -190,4 +240,24 @@ export default function SignupPage() {
       </section>
     </main>
   );
+}
+
+function getSignupErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    if (error.name === "UsernameExistsException") {
+      return "An account already exists for this email.";
+    }
+
+    if (error.name === "InvalidPasswordException") {
+      return "Password must match the Cognito password policy.";
+    }
+
+    if (error.name === "InvalidParameterException") {
+      return "Check your signup details and try again.";
+    }
+
+    return error.message;
+  }
+
+  return "Unable to create account. Please try again.";
 }

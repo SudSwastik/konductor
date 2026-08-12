@@ -166,6 +166,13 @@
   font-size: 12px;
 }
 
+.success {
+  margin-top: 14px;
+  color: #147a45;
+  font-size: 12px;
+  text-align: center;
+}
+
 .scopeList {
   display: flex;
   flex-direction: column;
