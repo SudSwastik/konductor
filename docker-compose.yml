@@ -1,0 +1,35 @@
+services:
+  projector-db:
+    image: postgres:16-alpine
+    container_name: konductor-projector-db
+    environment:
+      POSTGRES_DB: konductor
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - projector-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d konductor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  projector-db-viewer:
+    image: dpage/pgadmin4:8
+    container_name: konductor-projector-db-viewer
+    depends_on:
+      projector-db:
+        condition: service_healthy
+    ports:
+      - "8081:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@konductor.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - projector-pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  projector-db-data:
+  projector-pgadmin-data:

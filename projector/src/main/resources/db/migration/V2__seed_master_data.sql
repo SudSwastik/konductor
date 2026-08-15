@@ -1,19 +1,25 @@
-INSERT INTO subscription_type (code, name, description) VALUES
-    ('WEBHOOK', 'Webhook', 'Deliver projected events to an HTTPS endpoint.'),
-    ('SQS', 'Amazon SQS', 'Deliver projected events to an Amazon SQS queue.'),
-    ('KAFKA', 'Kafka', 'Deliver projected events to a Kafka topic.');
+INSERT INTO subscription_type (code, name, description)
+VALUES
+    ('EVENT', 'Event', 'Deliver projected events to a Kafka topic.');
 
-INSERT INTO subscription_status (code, name, description) VALUES
-    ('PENDING_APPROVAL', 'Pending Approval', 'Subscription is waiting for manual approval.'),
+INSERT INTO subscription_status (code, name, description)
+VALUES
     ('ACTIVE', 'Active', 'Subscription is approved and receiving projected events.'),
     ('PAUSED', 'Paused', 'Subscription is temporarily stopped.'),
-    ('REJECTED', 'Rejected', 'Subscription request was rejected.'),
-    ('DISABLED', 'Disabled', 'Subscription has been administratively disabled.');
+    ('DRAFT', 'Draft', 'Subscription has been not been  disabled.'),
+    ('ARCHIVED', 'Archived', 'Subscription has been archived.');
 
-INSERT INTO event_trigger_type (code, name, description) VALUES
-    ('COMMERCE_ORDER_EVENT', 'Commerce Order Event', 'Master commerce order lifecycle event.');
+INSERT INTO event_trigger_type (code, name, description)
+VALUES
+    ('ORDER_CREATED', 'Order Created', 'Triggered when a new order is created.'),
+    ('ORDER_UPDATED', 'Order Updated', 'Triggered when order details change.'),
+    ('ORDER_CANCELLED', 'Order Cancelled', 'Triggered when an order is cancelled.'),
+    ('PAYMENT_UPDATED', 'Payment Updated', 'Triggered when order payment details change.'),
+    ('SHIPMENT_UPDATED', 'Shipment Updated', 'Triggered when shipment details change.'),
+    ('CUSTOMER_UPDATED', 'Customer Updated', 'Triggered when customer details linked to the order change.');
 
-INSERT INTO event_status (code, name, description) VALUES
+INSERT INTO event_status (code, name, description)
+VALUES
     ('CREATED', 'Created', 'Projected event row has been created.'),
     ('PROJECTED', 'Projected', 'Projected payload has been created.'),
     ('DELIVERY_PENDING', 'Delivery Pending', 'Projected event is ready for downstream delivery.'),
@@ -24,7 +30,8 @@ INSERT INTO event_status (code, name, description) VALUES
     ('RETRY_EXHAUSTED', 'Retry Exhausted', 'Delivery failed permanently after retry limit.'),
     ('CANCELLED', 'Cancelled', 'Projected event delivery was cancelled.');
 
-INSERT INTO parameter_type (code, name, description) VALUES
+INSERT INTO parameter_data_type (code, name, description)
+VALUES
     ('STRING', 'String', 'Text value.'),
     ('NUMBER', 'Number', 'Generic numeric value.'),
     ('INTEGER', 'Integer', 'Whole number value.'),

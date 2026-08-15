@@ -1,9 +1,0 @@
-CREATE TABLE event_trigger_type (
-    id SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    code VARCHAR(100) NOT NULL UNIQUE,
-    name VARCHAR(150) NOT NULL,
-    description TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_by VARCHAR(320)
-);

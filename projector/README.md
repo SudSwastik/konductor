@@ -21,21 +21,9 @@ Projector uses PostgreSQL. Schema changes live in Flyway migrations under `src/m
 Current migration files:
 
 ```text
-V1__subscription_type.sql
-V2__subscription_status.sql
-V3__event_trigger_type.sql
-V4__event_status.sql
-V5__parameter_type.sql
-V6__subscription.sql
-V7__event_trigger_selection.sql
-V8__parameter_definition.sql
-V9__parameter_selection.sql
-V10__delivery_config.sql
-V11__event.sql
-V12__event_retry_log.sql
-V13__subscription_audit_log.sql
-V14__create_indexes.sql
-V15__seed_master_data.sql
+V1__create_tables.sql
+V2__seed_master_data.sql
+V3__seed_parameter_definitions.sql
 ```
 
 Current schema tables:
@@ -45,7 +33,7 @@ subscription_type
 subscription_status
 event_trigger_type
 event_status
-parameter_type
+parameter_data_type
 subscription
 event_trigger_selection
 parameter_definition

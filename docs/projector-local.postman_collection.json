@@ -1,0 +1,514 @@
+{
+  "info": {
+    "_postman_id": "6c117dcb-1565-4b71-ac7d-3f7d9331b3ea",
+    "name": "Konductor Projector Local",
+    "description": "Local API tests for projector subscription APIs. Run with the Konductor Projector Local environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Success - Master Data",
+      "item": [
+        {
+          "name": "Get Subscription Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/subscription-types"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('returns a list', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Subscription Statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/subscription-statuses"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('returns a list', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Event Trigger Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/triggers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('returns a list', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Event Statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/event-statuses"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('returns a list', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Parameter Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/parameters"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('returns a list', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Success - Subscriptions",
+      "item": [
+        {
+          "name": "Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Email",
+                "value": "{{actorEmail}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionTypeId\": {{subscriptionTypeId}},\n  \"subscriptionStatusId\": {{subscriptionStatusId}},\n  \"name\": \"Local test subscription {{$timestamp}}\",\n  \"description\": \"Created from Postman local collection\",\n  \"activatedAt\": \"2026-08-14T00:00:00Z\",\n  \"deactivatedAt\": null,\n  \"triggers\": [\n    {\n      \"eventTriggerTypeId\": {{eventTriggerTypeId}},\n      \"parameterDefinitionIds\": [{{parameterDefinitionId1}}, {{parameterDefinitionId2}}, {{parameterDefinitionId3}}]\n    }\n  ],\n  \"deliveryConfig\": {\n    \"deliveryType\": \"WEBHOOK\",\n    \"endpointUrl\": \"http://localhost:9090/events\",\n    \"httpMethod\": \"POST\",\n    \"timeoutSeconds\": 30,\n    \"maxRetryCount\": 3,\n    \"retryBackoffSeconds\": 60\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test('subscriptionUid exists', function () { pm.expect(json.subscriptionUid).to.be.a('string').and.not.empty; });",
+                  "pm.environment.set('subscriptionUid', json.subscriptionUid);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/subscriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('returns a list', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Subscription By UID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('matches environment uid', function () { pm.expect(pm.response.json().subscriptionUid).to.eql(pm.environment.get('subscriptionUid')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patch Basic Subscription Data",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Email",
+                "value": "{{actorEmail}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated local subscription {{$timestamp}}\",\n  \"description\": \"Updated from Postman local collection\",\n  \"activatedAt\": \"2026-08-15T00:00:00Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('name was updated', function () { pm.expect(pm.response.json().name).to.include('Updated local subscription'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace Triggers",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Email",
+                "value": "{{actorEmail}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventTriggerTypeIds\": [{{eventTriggerTypeId}}]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}/triggers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('has trigger selection', function () { pm.expect(pm.response.json().triggers).to.be.an('array').that.is.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace Parameters",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Email",
+                "value": "{{actorEmail}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parameters\": [\n    {\n      \"eventTriggerTypeId\": {{eventTriggerTypeId}},\n      \"parameterDefinitionIds\": [{{parameterDefinitionId1}}, {{parameterDefinitionId2}}, {{parameterDefinitionId3}}]\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}/parameters"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('parameters were selected', function () { pm.expect(pm.response.json().triggers[0].parameterDefinitionIds).to.include(Number(pm.environment.get('parameterDefinitionId1'))); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "item": [
+        {
+          "name": "Get Missing Subscription - 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{missingSubscriptionUid}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Missing Name - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionTypeId\": {{subscriptionTypeId}},\n  \"subscriptionStatusId\": {{subscriptionStatusId}},\n  \"description\": \"Missing name should fail\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Invalid Subscription Type - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionTypeId\": {{invalidSmallId}},\n  \"subscriptionStatusId\": {{subscriptionStatusId}},\n  \"name\": \"Invalid type\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Invalid Subscription Status - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionTypeId\": {{subscriptionTypeId}},\n  \"subscriptionStatusId\": {{invalidSmallId}},\n  \"name\": \"Invalid status\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patch Invalid Subscription Type - 400",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionTypeId\": {{invalidSmallId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace Invalid Trigger - 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventTriggerTypeIds\": [{{invalidSmallId}}]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}/triggers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace Invalid Parameter Definition - 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parameters\": [\n    {\n      \"eventTriggerTypeId\": {{eventTriggerTypeId}},\n      \"parameterDefinitionIds\": [{{invalidBigId}}]\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionUid}}/parameters"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed JSON - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionTypeId\": {{subscriptionTypeId}},\n  \"subscriptionStatusId\": {{subscriptionStatusId}},\n  \"name\": \"Broken JSON\"\n"
+            },
+            "url": "{{baseUrl}}/api/v1/subscriptions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
