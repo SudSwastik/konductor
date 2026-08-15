@@ -50,8 +50,10 @@ Provide database connection values with environment variables:
 
 ```bash
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/konductor
-SPRING_DATASOURCE_USERNAME=konductor_app
-SPRING_DATASOURCE_PASSWORD=change-me
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=root
+KAFKA_BOOTSTRAP_SERVERS=localhost:9094
+KONDUCTOR_SOURCE_EVENTS_TOPIC=konductor.source-events
 ```
 
 ## Build And Test

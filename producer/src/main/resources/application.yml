@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: producer
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+konductor:
+  kafka:
+    source-events-topic: ${KONDUCTOR_SOURCE_EVENTS_TOPIC:konductor.source-events}
+
+server:
+  port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
