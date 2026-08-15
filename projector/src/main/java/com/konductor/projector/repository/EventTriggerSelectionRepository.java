@@ -11,6 +11,8 @@ public interface EventTriggerSelectionRepository extends JpaRepository<EventTrig
 
     List<EventTriggerSelection> findBySubscriptionIdAndActiveTrue(Long subscriptionId);
 
+    List<EventTriggerSelection> findByEventTriggerTypeIdAndActiveTrue(Short eventTriggerTypeId);
+
     List<EventTriggerSelection> findBySubscriptionIdAndEventTriggerTypeIdOrderByIdAsc(Long subscriptionId, Short eventTriggerTypeId);
 
     List<EventTriggerSelection> findByIdInAndActiveTrue(Collection<Long> ids);

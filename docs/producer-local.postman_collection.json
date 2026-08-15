@@ -1,0 +1,147 @@
+{
+  "info": {
+    "_postman_id": "2f2fe2ef-4864-44cf-866f-54d53bc6ff50",
+    "name": "Konductor Producer Local",
+    "description": "Local API tests for producing Kafka source events for projector.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Success",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{producerBaseUrl}}/actuator/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('service is up', function () { pm.expect(pm.response.json().status).to.eql('UP'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish Sample Event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{producerBaseUrl}}/api/v1/events/{{triggerType}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 202', function () { pm.response.to.have.status(202); });",
+                  "const json = pm.response.json();",
+                  "pm.test('source event id exists', function () { pm.expect(json.sourceEventId).to.be.a('string').and.not.empty; });",
+                  "pm.test('trigger type matches', function () { pm.expect(json.triggerType).to.eql(pm.environment.get('triggerType')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish Custom Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"triggerType\": \"ORDER_CREATED\",\n  \"sourceEventId\": \"src_postman_{{$timestamp}}\",\n  \"sourceSystem\": \"postman-local\",\n  \"correlationId\": \"corr_postman_{{$timestamp}}\",\n  \"body\": {\n    \"event\": {\n      \"triggerType\": \"ORDER_CREATED\",\n      \"sourceSystem\": \"postman-local\"\n    },\n    \"order\": {\n      \"orderId\": \"ord_postman_{{$timestamp}}\",\n      \"orderNumber\": \"KO-POSTMAN-{{$timestamp}}\",\n      \"status\": \"OPEN\",\n      \"total\": {\n        \"amount\": 149.99,\n        \"currency\": \"USD\"\n      }\n    },\n    \"customer\": {\n      \"customerId\": \"cus_postman\",\n      \"email\": \"local@example.com\"\n    }\n  }\n}"
+            },
+            "url": "{{producerBaseUrl}}/api/v1/events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 202', function () { pm.response.to.have.status(202); });",
+                  "pm.test('custom source id returned', function () { pm.expect(pm.response.json().sourceEventId).to.include('src_postman_'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "item": [
+        {
+          "name": "Publish Custom Event Missing Trigger Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": {\n    \"order\": {\n      \"orderId\": \"ord_missing_trigger\"\n    }\n  }\n}"
+            },
+            "url": "{{producerBaseUrl}}/api/v1/events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publish Custom Event Missing Body",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"triggerType\": \"ORDER_CREATED\"\n}"
+            },
+            "url": "{{producerBaseUrl}}/api/v1/events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
