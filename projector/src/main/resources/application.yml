@@ -1,6 +1,16 @@
 spring:
   application:
     name: projector
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/konductor}
+    username: ${SPRING_DATASOURCE_USERNAME:konductor_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:konductor_app}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
 
 server:
   port: 8082
