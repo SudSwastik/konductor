@@ -1,26 +1,16 @@
 spring:
   application:
-    name: projector
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/konductor}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-  flyway:
-    enabled: true
+    name: consumer
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
     consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP_ID:projector}
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:konductor-consumer}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: com.konductor.projector.kafka.message
-        spring.json.value.default.type: com.konductor.projector.kafka.message.ProducerEventMessage
+        spring.json.trusted.packages: com.konductor.consumer.kafka.message
+        spring.json.value.default.type: com.konductor.consumer.kafka.message.ProjectedEventMessage
         spring.json.use.type.headers: false
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -29,13 +19,14 @@ spring:
         spring.json.add.type.headers: false
 
 konductor:
+  consumer:
+    name: ${KONDUCTOR_CONSUMER_NAME:sample-consumer}
   kafka:
-    source-events-topic: ${KONDUCTOR_SOURCE_EVENTS_TOPIC:konductor.source-events}
+    subscription-topic: ${KONDUCTOR_SUBSCRIPTION_TOPIC:konductor.subscription.sub_local}
     consumer-acks-topic: ${KONDUCTOR_CONSUMER_ACKS_TOPIC:konductor.consumer-acks}
-    subscription-topic-prefix: ${KONDUCTOR_SUBSCRIPTION_TOPIC_PREFIX:konductor.subscription}
 
 server:
-  port: 8082
+  port: 8086
 
 management:
   endpoints:
