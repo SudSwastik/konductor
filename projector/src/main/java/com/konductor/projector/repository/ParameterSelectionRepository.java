@@ -9,6 +9,8 @@ import java.util.List;
 public interface ParameterSelectionRepository extends JpaRepository<ParameterSelection, Long> {
     List<ParameterSelection> findByEventTriggerSelectionIdInAndActiveTrue(Collection<Long> eventTriggerSelectionIds);
 
+    List<ParameterSelection> findByEventTriggerSelectionIdAndActiveTrue(Long eventTriggerSelectionId);
+
     List<ParameterSelection> findByEventTriggerSelectionIdIn(Collection<Long> eventTriggerSelectionIds);
 
     List<ParameterSelection> findByEventTriggerSelectionIdAndParameterDefinitionIdOrderByIdAsc(
