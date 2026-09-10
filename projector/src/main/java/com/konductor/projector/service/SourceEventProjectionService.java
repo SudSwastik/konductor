@@ -20,6 +20,7 @@ import com.konductor.projector.repository.EventTriggerTypeRepository;
 import com.konductor.projector.repository.ParameterDefinitionRepository;
 import com.konductor.projector.repository.ParameterSelectionRepository;
 import com.konductor.projector.repository.SubscriptionRepository;
+import com.konductor.projector.repository.SubscriptionStatusRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,7 @@ public class SourceEventProjectionService {
     private final ParameterSelectionRepository parameterSelectionRepository;
     private final ParameterDefinitionRepository parameterDefinitionRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionStatusRepository subscriptionStatusRepository;
     private final ProjectedEventPublisher projectedEventPublisher;
     private final String subscriptionTopicPrefix;
 
@@ -65,6 +67,7 @@ public class SourceEventProjectionService {
             ParameterSelectionRepository parameterSelectionRepository,
             ParameterDefinitionRepository parameterDefinitionRepository,
             SubscriptionRepository subscriptionRepository,
+            SubscriptionStatusRepository subscriptionStatusRepository,
             ProjectedEventPublisher projectedEventPublisher,
             @Value("${konductor.kafka.subscription-topic-prefix}") String subscriptionTopicPrefix
     ) {
@@ -77,6 +80,7 @@ public class SourceEventProjectionService {
         this.parameterSelectionRepository = parameterSelectionRepository;
         this.parameterDefinitionRepository = parameterDefinitionRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.subscriptionStatusRepository = subscriptionStatusRepository;
         this.projectedEventPublisher = projectedEventPublisher;
         this.subscriptionTopicPrefix = subscriptionTopicPrefix;
     }
@@ -110,6 +114,15 @@ public class SourceEventProjectionService {
         long payloadSizeBytes = payloadJson.getBytes(StandardCharsets.UTF_8).length;
 
         for (EventTriggerSelection selection : selections) {
+            Subscription subscription = subscriptionRepository.findById(selection.getSubscriptionId())
+                    .orElseThrow(() -> new IllegalStateException("Missing subscription " + selection.getSubscriptionId()));
+            String subscriptionStatus = subscriptionStatusRepository.findById(subscription.getSubscriptionStatusId())
+                    .map(status -> status.getCode())
+                    .orElse(null);
+            if (!SubscriptionLifecyclePolicy.ACTIVE.equals(subscriptionStatus)) {
+                continue;
+            }
+
             Event event = new Event();
             event.setEventUid(newEventUid());
             event.setSourceEventId(message.sourceEventId());
@@ -129,8 +142,6 @@ public class SourceEventProjectionService {
             event.markCreated("SYSTEM");
             event = eventRepository.save(event);
 
-            Subscription subscription = subscriptionRepository.findById(selection.getSubscriptionId())
-                    .orElseThrow(() -> new IllegalStateException("Missing subscription " + selection.getSubscriptionId()));
             String topic = topicFor(subscription.getSubscriptionUid(), deliveryConfig);
             ProjectedEventMessage projectedMessage = new ProjectedEventMessage(
                     event.getEventUid(),
