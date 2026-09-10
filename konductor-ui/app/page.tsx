@@ -2,6 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getCurrentUser, signOut } from "aws-amplify/auth";
+import {
+  ArrowRight,
+  Check,
+  CircleAlert,
+  Eye,
+  Inbox,
+  LogOut,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  Webhook,
+  Waypoints,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { configureAmplify } from "@/lib/amplify";
 import {
@@ -29,44 +46,39 @@ type WizardForm = {
   name: string;
   description: string;
   deliveryMode: DeliveryMode;
-  endpoint: string;
   parameterIds: number[];
   triggerIds: number[];
-  startDate: string;
-  endDate: string;
+  goLiveDate: string;
 };
 
 const emptyWizard: WizardForm = {
   name: "",
   description: "",
   deliveryMode: "HTTP",
-  endpoint: "",
   parameterIds: [],
   triggerIds: [],
-  startDate: new Date().toISOString().slice(0, 10),
-  endDate: "",
+  goLiveDate: new Date().toISOString().slice(0, 10),
 };
 
 function Icon({ children }: { children: string }) {
-  const symbols: Record<string, string> = {
-    hub: "◆",
-    refresh: "↻",
-    add: "+",
-    logout: "↪",
-    error: "!",
-    inbox: "□",
-    visibility: "◉",
-    pause: "Ⅱ",
-    play_arrow: "▶",
-    webhook: "↗",
-    bolt: "ϟ",
-    link: "↗",
-    tag: "#",
-    check: "✓",
-    arrow_forward: "→",
-    close: "×",
+  const icons: Record<string, LucideIcon> = {
+    hub: Waypoints,
+    refresh: RefreshCw,
+    add: Plus,
+    logout: LogOut,
+    error: CircleAlert,
+    inbox: Inbox,
+    visibility: Eye,
+    pause: Pause,
+    play_arrow: Play,
+    webhook: Webhook,
+    bolt: Zap,
+    check: Check,
+    arrow_forward: ArrowRight,
+    close: X,
   };
-  return <span className={styles.icon} aria-hidden="true">{symbols[children] || "•"}</span>;
+  const Glyph = icons[children] || CircleAlert;
+  return <span className={styles.icon} aria-hidden="true"><Glyph size={16} strokeWidth={2.25} /></span>;
 }
 
 function formatDate(value: string | null) {
@@ -141,7 +153,7 @@ export default function SubscriptionsPage() {
   function openWizard() {
     setWizard({
       ...emptyWizard,
-      startDate: new Date().toISOString().slice(0, 10),
+      goLiveDate: new Date().toISOString().slice(0, 10),
       parameterIds: parameters.filter((parameter) => parameter.required).map((parameter) => parameter.id),
     });
     setWizardStep(1);
@@ -171,14 +183,6 @@ export default function SubscriptionsPage() {
       setWizardError("Enter a subscription name.");
       return;
     }
-    if (!wizard.endpoint.trim()) {
-      setWizardError(wizard.deliveryMode === "HTTP" ? "Enter a callback URL." : "Enter a Kafka topic.");
-      return;
-    }
-    if (wizard.deliveryMode === "HTTP" && !/^https?:\/\//i.test(wizard.endpoint)) {
-      setWizardError("Enter a valid http:// or https:// callback URL.");
-      return;
-    }
     setWizardStep(2);
   }
 
@@ -195,12 +199,8 @@ export default function SubscriptionsPage() {
       setWizardError("Select at least one trigger.");
       return;
     }
-    if (!wizard.startDate) {
-      setWizardError("Choose a start date.");
-      return;
-    }
-    if (wizard.endDate && wizard.endDate < wizard.startDate) {
-      setWizardError("End date must be on or after the start date.");
+    if (!wizard.goLiveDate) {
+      setWizardError("Choose a go-live date.");
       return;
     }
 
@@ -212,19 +212,14 @@ export default function SubscriptionsPage() {
         subscriptionStatusId: 1,
         name: wizard.name.trim(),
         description: wizard.description.trim(),
-        activatedAt: new Date(`${wizard.startDate}T00:00:00`).toISOString(),
-        deactivatedAt: wizard.endDate ? new Date(`${wizard.endDate}T23:59:59`).toISOString() : null,
+        activatedAt: new Date(`${wizard.goLiveDate}T00:00:00`).toISOString(),
+        deactivatedAt: null,
         triggers: wizard.triggerIds.map((eventTriggerTypeId) => ({
           eventTriggerTypeId,
           parameterDefinitionIds: wizard.parameterIds,
         })),
         deliveryConfig: {
           deliveryType: wizard.deliveryMode,
-          endpointUrl: wizard.endpoint.trim(),
-          httpMethod: wizard.deliveryMode === "HTTP" ? "POST" : null,
-          timeoutSeconds: 30,
-          maxRetryCount: 3,
-          retryBackoffSeconds: 10,
         },
       }, actor);
       setWizardOpen(false);
@@ -259,7 +254,7 @@ export default function SubscriptionsPage() {
         <header className={styles.header}>
           <div>
             <div className={styles.breadcrumb}>
-              <span className={styles.brandIcon}>K</span>
+              <span className={styles.brandIcon} aria-hidden="true"><Waypoints size={20} strokeWidth={2.25} /></span>
               <span className={styles.brandName}>Konductor</span><span className={styles.slash}>/</span><span className={styles.current}>Subscriptions</span>
             </div>
             <h1>Data subscriptions</h1>
@@ -287,7 +282,7 @@ export default function SubscriptionsPage() {
             {isLoading ? <div className={styles.loadingState} aria-live="polite"><span className={styles.spinner} />Loading subscriptions…</div>
               : subscriptions.length ? <div className={styles.tableScroller}>
                 <table className={styles.table}>
-                  <thead><tr><th>Subscription</th><th>Delivery</th><th>Fields</th><th>Triggers</th><th>Live window</th><th>Status</th><th aria-label="Actions" /></tr></thead>
+                  <thead><tr><th>Subscription</th><th>Delivery</th><th>Fields</th><th>Triggers</th><th>Go live</th><th>Status</th><th aria-label="Actions" /></tr></thead>
                   <tbody>{subscriptions.map((subscription) => {
                     const parameterCount = new Set(subscription.triggers.flatMap((trigger) => trigger.parameterDefinitionIds)).size;
                     const isHttp = subscription.deliveryConfig?.deliveryType === "HTTP";
@@ -296,7 +291,7 @@ export default function SubscriptionsPage() {
                       <td><span className={`${styles.typeBadge} ${isHttp ? styles.httpBadge : styles.eventBadge}`}><Icon>{isHttp ? "webhook" : "bolt"}</Icon>{isHttp ? "API callback" : "Event"}</span></td>
                       <td><span className={styles.countBadge}>{parameterCount}</span></td>
                       <td><div className={styles.triggerList}>{subscription.triggers.slice(0, 2).map((trigger) => <span key={trigger.eventTriggerTypeId}>{triggerName.get(trigger.eventTriggerTypeId) || `Trigger ${trigger.eventTriggerTypeId}`}</span>)}{subscription.triggers.length > 2 ? <span>+{subscription.triggers.length - 2}</span> : null}</div></td>
-                      <td><span className={styles.windowDate}>{formatDate(subscription.activatedAt)}</span><span className={styles.windowEnd}>to {subscription.deactivatedAt ? formatDate(subscription.deactivatedAt) : "No end date"}</span></td>
+                      <td><span className={styles.windowDate}>{formatDate(subscription.activatedAt)}</span></td>
                       <td><span className={`${styles.status} ${styles[`status${STATUS_NAMES[subscription.subscriptionStatusId] || "Draft"}`]}`}><i />{STATUS_NAMES[subscription.subscriptionStatusId] || "Unknown"}</span></td>
                       <td><div className={styles.rowActions}>
                         <button type="button" title="View details" aria-label={`View ${subscription.name}`} onClick={() => setSelectedSubscription(subscription)}><Icon>visibility</Icon></button>
@@ -313,7 +308,7 @@ export default function SubscriptionsPage() {
       {wizardOpen ? <div className={styles.overlay} onMouseDown={closeWizard}>
         <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="wizard-title" onMouseDown={(event) => event.stopPropagation()}>
           <div className={styles.modalHeader}>
-            <div><span className={styles.eyebrow}>New subscription · Step {wizardStep} of 3</span><h2 id="wizard-title">{wizardStep === 1 && "Choose a destination"}{wizardStep === 2 && "Select subscription fields"}{wizardStep === 3 && "Choose triggers and schedule"}</h2><p>{wizardStep === 1 && "Name the subscription and choose where events should go."}{wizardStep === 2 && "Choose the exact data included in every projected event."}{wizardStep === 3 && "Select the events that should publish this subscription."}</p></div>
+            <div><span className={styles.eyebrow}>New subscription · Step {wizardStep} of 3</span><h2 id="wizard-title">{wizardStep === 1 && "Choose a destination"}{wizardStep === 2 && "Select subscription fields"}{wizardStep === 3 && "Choose triggers and go-live date"}</h2><p>{wizardStep === 1 && "Name the subscription and choose where events should go."}{wizardStep === 2 && "Choose the exact data included in every projected event."}{wizardStep === 3 && "Select the events that should publish this subscription."}</p></div>
             <button className={styles.closeButton} type="button" onClick={closeWizard} aria-label="Close wizard"><Icon>close</Icon></button>
           </div>
           <div className={styles.progress} aria-label={`Step ${wizardStep} of 3`}>{[1, 2, 3].map((step) => <span key={step} className={step <= wizardStep ? styles.progressActive : ""} />)}</div>
@@ -325,7 +320,6 @@ export default function SubscriptionsPage() {
                 <button type="button" className={wizard.deliveryMode === "HTTP" ? styles.choiceSelected : ""} onClick={() => updateWizard("deliveryMode", "HTTP")}><span><Icon>webhook</Icon></span><strong>API callback</strong><small>POST events to an HTTPS endpoint</small></button>
                 <button type="button" className={wizard.deliveryMode === "KAFKA" ? styles.choiceSelected : ""} onClick={() => updateWizard("deliveryMode", "KAFKA")}><span><Icon>bolt</Icon></span><strong>Event consumer</strong><small>Publish events to a Kafka topic</small></button>
               </div></fieldset>
-              <label className={styles.field}><span>{wizard.deliveryMode === "HTTP" ? "Callback URL" : "Kafka topic"}</span><div className={styles.inputWithIcon}><Icon>{wizard.deliveryMode === "HTTP" ? "link" : "tag"}</Icon><input value={wizard.endpoint} onChange={(event) => updateWizard("endpoint", event.target.value)} placeholder={wizard.deliveryMode === "HTTP" ? "https://api.example.com/events" : "orders.projected"} /></div></label>
             </div> : null}
 
             {wizardStep === 2 ? <div className={styles.optionsPanel}>
@@ -341,7 +335,7 @@ export default function SubscriptionsPage() {
                 const selected = wizard.triggerIds.includes(trigger.id);
                 return <button type="button" key={trigger.id} className={selected ? styles.optionSelected : ""} onClick={() => toggleNumber("triggerIds", trigger.id)}><span className={styles.checkBox}>{selected ? <Icon>check</Icon> : null}</span><span><strong>{trigger.name}</strong><small>{trigger.description}</small></span></button>;
               })}</div></fieldset>
-              <fieldset className={styles.fieldset}><legend>Live window</legend><div className={styles.dateGrid}><label className={styles.field}><span>Start date</span><input type="date" value={wizard.startDate} onChange={(event) => updateWizard("startDate", event.target.value)} /></label><label className={styles.field}><span>End date <em>Optional</em></span><input type="date" min={wizard.startDate} value={wizard.endDate} onChange={(event) => updateWizard("endDate", event.target.value)} /></label></div></fieldset>
+              <label className={styles.field}><span>Go-live date</span><input type="date" value={wizard.goLiveDate} onChange={(event) => updateWizard("goLiveDate", event.target.value)} /></label>
             </div> : null}
             {wizardError ? <p className={styles.wizardError} role="alert"><Icon>error</Icon>{wizardError}</p> : null}
           </div>
@@ -356,7 +350,7 @@ export default function SubscriptionsPage() {
         <section className={`${styles.modal} ${styles.detailModal}`} role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={(event) => event.stopPropagation()}>
           <div className={styles.modalHeader}><div><span className={styles.eyebrow}>Subscription details</span><h2 id="detail-title">{selectedSubscription.name}</h2><p>{selectedSubscription.description || "No description"}</p></div><button className={styles.closeButton} type="button" onClick={() => setSelectedSubscription(null)} aria-label="Close details"><Icon>close</Icon></button></div>
           <div className={styles.detailBody}>
-            <dl><div><dt>Status</dt><dd>{STATUS_NAMES[selectedSubscription.subscriptionStatusId] || "Unknown"}</dd></div><div><dt>Delivery</dt><dd>{selectedSubscription.deliveryConfig?.deliveryType === "HTTP" ? "API callback" : "Event consumer"}</dd></div><div className={styles.detailWide}><dt>Destination</dt><dd className={styles.mono}>{selectedSubscription.deliveryConfig?.endpointUrl || "Managed subscription topic"}</dd></div><div><dt>Starts</dt><dd>{formatDate(selectedSubscription.activatedAt)}</dd></div><div><dt>Ends</dt><dd>{selectedSubscription.deactivatedAt ? formatDate(selectedSubscription.deactivatedAt) : "No end date"}</dd></div></dl>
+            <dl><div><dt>Status</dt><dd>{STATUS_NAMES[selectedSubscription.subscriptionStatusId] || "Unknown"}</dd></div><div><dt>Delivery</dt><dd>{selectedSubscription.deliveryConfig?.deliveryType === "HTTP" ? "API callback" : "Event consumer"}</dd></div><div className={styles.detailWide}><dt>Destination</dt><dd className={styles.mono}>{selectedSubscription.deliveryConfig?.endpointUrl || "Managed by delivery configuration"}</dd></div><div><dt>Go live</dt><dd>{formatDate(selectedSubscription.activatedAt)}</dd></div></dl>
             <div className={styles.detailSection}><h3>Triggers</h3><div className={styles.detailTags}>{selectedSubscription.triggers.map((trigger) => <span key={trigger.eventTriggerTypeId}>{triggerName.get(trigger.eventTriggerTypeId) || `Trigger ${trigger.eventTriggerTypeId}`}</span>)}</div></div>
             <div className={styles.detailSection}><h3>Projected fields</h3><p>{new Set(selectedSubscription.triggers.flatMap((trigger) => trigger.parameterDefinitionIds)).size.toLocaleString()} fields selected</p></div>
           </div>
