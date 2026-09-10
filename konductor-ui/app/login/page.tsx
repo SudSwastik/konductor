@@ -23,7 +23,7 @@ export default function LoginPage() {
       try {
         configureAmplify();
         await getCurrentUser();
-        router.replace("/");
+        router.replace("/subscriptions");
       } catch {
         // No active session. Keep the user on the login page.
       }
@@ -58,7 +58,7 @@ export default function LoginPage() {
         password: form.password,
       });
 
-      router.push("/");
+      router.push("/subscriptions");
     } catch (caughtError) {
       setError(getLoginErrorMessage(caughtError));
     } finally {

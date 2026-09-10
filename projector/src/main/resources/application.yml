@@ -36,6 +36,9 @@ konductor:
 
 server:
   port: 8082
+  error:
+    include-message: always
+    include-binding-errors: always
 
 management:
   endpoints:
