@@ -11,5 +11,7 @@ public interface ParameterDefinitionRepository extends JpaRepository<ParameterDe
 
     List<ParameterDefinition> findByIdInAndActiveTrue(Collection<Long> ids);
 
+    List<ParameterDefinition> findByCodeInAndActiveTrue(Collection<String> codes);
+
     long countByIdInAndActiveTrue(Collection<Long> ids);
 }

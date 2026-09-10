@@ -1,68 +1,53 @@
 export type MasterData = {
-  id: number;
   code: string;
   name: string;
   description: string;
 };
 
 export type ParameterDefinition = {
-  id: number;
-  dataTypeId: number;
+  code: string;
+  dataType: string;
   name: string;
   description: string;
   fieldPath: string;
   required: boolean;
 };
 
-export type TriggerSelection = {
-  eventTriggerTypeId: number;
-  parameterDefinitionIds: number[];
-};
-
-export type DeliveryConfig = {
-  deliveryType: string;
-  endpointUrl: string | null;
-  httpMethod: string | null;
-  timeoutSeconds: number;
-  maxRetryCount: number;
-  retryBackoffSeconds: number;
-};
-
 export type Subscription = {
-  subscriptionUid: string;
-  subscriptionTypeId: number;
-  subscriptionStatusId: number;
-  name: string;
-  description: string | null;
-  activatedAt: string | null;
-  deactivatedAt: string | null;
-  active: boolean;
-  createdAt?: string;
-  createdBy?: string;
-  updatedAt?: string;
-  updatedBy?: string;
-  triggers: TriggerSelection[];
-  deliveryConfig: DeliveryConfig | null;
+  subscriptionId: string;
+  subscriptionVersion: number;
+  subscriptionType: "EVENT" | "API_CALLBACK";
+  status: string;
+  basicInfo: {
+    name: string;
+    description: string | null;
+    goLiveDate: string | null;
+  };
+  parameters: Array<{
+    code: string;
+    name: string;
+    description: string | null;
+    fieldPath: string;
+    required: boolean;
+  }>;
+  triggers: Array<{
+    code: string;
+    name: string;
+    description: string | null;
+  }>;
 };
 
-type SubscriptionSummary = Omit<Subscription, "triggers" | "deliveryConfig">;
+type SubscriptionSummary = Omit<Subscription, "parameters" | "triggers">;
 
 export type CreateSubscriptionInput = {
-  subscriptionTypeId: number;
-  subscriptionStatusId: number;
-  name: string;
-  description: string;
-  activatedAt: string;
-  deactivatedAt: string | null;
-  triggers: TriggerSelection[];
-  deliveryConfig: {
-    deliveryType: string;
-    endpointUrl?: string | null;
-    httpMethod?: string | null;
-    timeoutSeconds?: number;
-    maxRetryCount?: number;
-    retryBackoffSeconds?: number;
+  subscriptionType: "EVENT" | "API_CALLBACK";
+  basicInfo: {
+    name: string;
+    description: string;
+    goLiveDate: string;
   };
+  parameters: Array<{ code: string }>;
+  triggers: Array<{ code: string }>;
 };
 
 const apiRoot = "/projector";
@@ -93,18 +78,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export async function listSubscriptions(): Promise<Subscription[]> {
   const summaries = await request<SubscriptionSummary[]>("/subscriptions");
   const settled = await Promise.allSettled(
-    summaries.map((item) => getSubscription(item.subscriptionUid)),
+    summaries.map((item) => getSubscription(item.subscriptionId)),
   );
 
   return settled.map((result, index) =>
     result.status === "fulfilled"
       ? result.value
-      : { ...summaries[index], triggers: [], deliveryConfig: null },
+      : { ...summaries[index], parameters: [], triggers: [] },
   );
 }
 
-export function getSubscription(subscriptionUid: string) {
-  return request<Subscription>(`/subscriptions/${subscriptionUid}`);
+export function getSubscription(subscriptionId: string) {
+  return request<Subscription>(`/subscriptions/${subscriptionId}`);
 }
 
 export function listTriggers() {
@@ -127,13 +112,25 @@ export function createSubscription(
 }
 
 export function patchSubscription(
-  subscriptionUid: string,
+  subscriptionId: string,
   input: Record<string, unknown>,
   actor?: string,
 ) {
-  return request<Subscription>(`/subscriptions/${subscriptionUid}`, {
+  return request<Subscription>(`/subscriptions/${subscriptionId}`, {
     method: "PATCH",
     headers: actor ? { "X-User-Email": actor } : undefined,
     body: JSON.stringify(input),
+  });
+}
+
+export function patchSubscriptionStatus(
+  subscriptionId: string,
+  status: "ACTIVE" | "PAUSED",
+  actor?: string,
+) {
+  return request<Subscription>(`/subscriptions/${subscriptionId}/status`, {
+    method: "PATCH",
+    headers: actor ? { "X-User-Email": actor } : undefined,
+    body: JSON.stringify({ status }),
   });
 }

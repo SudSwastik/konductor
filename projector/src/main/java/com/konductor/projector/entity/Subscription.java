@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 
@@ -18,6 +19,10 @@ public class Subscription extends MutableAuditFields {
 
     @Column(name = "subscription_uid")
     private String subscriptionUid;
+
+    @Version
+    @Column(name = "subscription_version", nullable = false)
+    private Integer subscriptionVersion = 1;
 
     @Column(name = "subscription_type_id")
     private Short subscriptionTypeId;
@@ -37,6 +42,7 @@ public class Subscription extends MutableAuditFields {
     public Long getId() { return id; }
     public String getSubscriptionUid() { return subscriptionUid; }
     public void setSubscriptionUid(String subscriptionUid) { this.subscriptionUid = subscriptionUid; }
+    public Integer getSubscriptionVersion() { return subscriptionVersion; }
     public Short getSubscriptionTypeId() { return subscriptionTypeId; }
     public void setSubscriptionTypeId(Short subscriptionTypeId) { this.subscriptionTypeId = subscriptionTypeId; }
     public Short getSubscriptionStatusId() { return subscriptionStatusId; }

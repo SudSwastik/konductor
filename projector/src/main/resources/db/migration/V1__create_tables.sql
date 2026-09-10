@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS parameter_data_type (
 CREATE TABLE IF NOT EXISTS subscription (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     subscription_uid VARCHAR(100) NOT NULL UNIQUE,
+    subscription_version INTEGER NOT NULL DEFAULT 1,
     subscription_type_id SMALLINT NOT NULL REFERENCES subscription_type(id),
     subscription_status_id SMALLINT NOT NULL REFERENCES subscription_status(id),
     name VARCHAR(150) NOT NULL,
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS event_trigger_selection (
 
 CREATE TABLE IF NOT EXISTS parameter_definition (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code VARCHAR(100) NOT NULL UNIQUE,
     data_type_id SMALLINT NOT NULL REFERENCES parameter_data_type(id),
     name VARCHAR(150) NOT NULL,
     description TEXT,

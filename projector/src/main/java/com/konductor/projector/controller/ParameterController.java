@@ -1,8 +1,6 @@
 package com.konductor.projector.controller;
 
-import com.konductor.projector.dto.MasterDataResponse;
 import com.konductor.projector.dto.ParameterDefinitionResponse;
-import com.konductor.projector.entity.ParameterDataType;
 import com.konductor.projector.entity.ParameterDefinition;
 import com.konductor.projector.repository.ParameterDataTypeRepository;
 import com.konductor.projector.repository.ParameterDefinitionRepository;
@@ -33,14 +31,12 @@ public class ParameterController {
                 .toList();
     }
 
-    private MasterDataResponse toMasterDataResponse(ParameterDataType value) {
-        return new MasterDataResponse(value.getId(), value.getCode(), value.getName(), value.getDescription());
-    }
-
     private ParameterDefinitionResponse toParameterDefinitionResponse(ParameterDefinition value) {
         return new ParameterDefinitionResponse(
-                value.getId(),
-                value.getDataTypeId(),
+                value.getCode(),
+                parameterDataTypeRepository.findById(value.getDataTypeId())
+                        .map(dataType -> dataType.getCode())
+                        .orElseThrow(() -> new IllegalStateException("Parameter data type is not configured")),
                 value.getName(),
                 value.getDescription(),
                 value.getFieldPath(),

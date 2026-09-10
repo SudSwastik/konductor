@@ -28,35 +28,35 @@ import {
   listTriggers,
   MasterData,
   ParameterDefinition,
-  patchSubscription,
+  patchSubscriptionStatus,
   Subscription,
 } from "@/lib/projector";
 import styles from "./page.module.css";
 
-const STATUS_NAMES: Record<number, string> = {
-  1: "Active",
-  2: "Paused",
-  3: "Draft",
-  4: "Archived",
+const STATUS_NAMES: Record<string, string> = {
+  ACTIVE: "Active",
+  PAUSED: "Paused",
+  DRAFT: "Draft",
+  ARCHIVED: "Archived",
 };
 
-type DeliveryMode = "HTTP" | "KAFKA";
+type DeliveryMode = "API_CALLBACK" | "EVENT";
 
 type WizardForm = {
   name: string;
   description: string;
   deliveryMode: DeliveryMode;
-  parameterIds: number[];
-  triggerIds: number[];
+  parameterCodes: string[];
+  triggerCodes: string[];
   goLiveDate: string;
 };
 
 const emptyWizard: WizardForm = {
   name: "",
   description: "",
-  deliveryMode: "HTTP",
-  parameterIds: [],
-  triggerIds: [],
+  deliveryMode: "API_CALLBACK",
+  parameterCodes: [],
+  triggerCodes: [],
   goLiveDate: new Date().toISOString().slice(0, 10),
 };
 
@@ -140,21 +140,16 @@ export default function SubscriptionsPage() {
 
   const stats = useMemo(() => [
     { label: "Total subscriptions", value: subscriptions.length },
-    { label: "Active subscriptions", value: subscriptions.filter((item) => item.subscriptionStatusId === 1).length },
-    { label: "API callbacks", value: subscriptions.filter((item) => item.deliveryConfig?.deliveryType === "HTTP").length },
-    { label: "Event subscriptions", value: subscriptions.filter((item) => item.deliveryConfig?.deliveryType !== "HTTP").length },
+    { label: "Active subscriptions", value: subscriptions.filter((item) => item.status === "ACTIVE").length },
+    { label: "API callbacks", value: subscriptions.filter((item) => item.subscriptionType === "API_CALLBACK").length },
+    { label: "Event subscriptions", value: subscriptions.filter((item) => item.subscriptionType === "EVENT").length },
   ], [subscriptions]);
-
-  const triggerName = useMemo(
-    () => new Map(triggers.map((trigger) => [trigger.id, trigger.name])),
-    [triggers],
-  );
 
   function openWizard() {
     setWizard({
       ...emptyWizard,
       goLiveDate: new Date().toISOString().slice(0, 10),
-      parameterIds: parameters.filter((parameter) => parameter.required).map((parameter) => parameter.id),
+      parameterCodes: parameters.filter((parameter) => parameter.required).map((parameter) => parameter.code),
     });
     setWizardStep(1);
     setWizardError("");
@@ -172,7 +167,7 @@ export default function SubscriptionsPage() {
     setWizardError("");
   }
 
-  function toggleNumber(key: "parameterIds" | "triggerIds", value: number) {
+  function toggleCode(key: "parameterCodes" | "triggerCodes", value: string) {
     updateWizard(key, wizard[key].includes(value)
       ? wizard[key].filter((item) => item !== value)
       : [...wizard[key], value]);
@@ -187,7 +182,7 @@ export default function SubscriptionsPage() {
   }
 
   function nextFromFields() {
-    if (!wizard.parameterIds.length) {
+    if (!wizard.parameterCodes.length) {
       setWizardError("Select at least one field.");
       return;
     }
@@ -195,7 +190,7 @@ export default function SubscriptionsPage() {
   }
 
   async function saveSubscription() {
-    if (!wizard.triggerIds.length) {
+    if (!wizard.triggerCodes.length) {
       setWizardError("Select at least one trigger.");
       return;
     }
@@ -208,19 +203,14 @@ export default function SubscriptionsPage() {
     setWizardError("");
     try {
       await createSubscription({
-        subscriptionTypeId: 1,
-        subscriptionStatusId: 1,
-        name: wizard.name.trim(),
-        description: wizard.description.trim(),
-        activatedAt: new Date(`${wizard.goLiveDate}T00:00:00`).toISOString(),
-        deactivatedAt: null,
-        triggers: wizard.triggerIds.map((eventTriggerTypeId) => ({
-          eventTriggerTypeId,
-          parameterDefinitionIds: wizard.parameterIds,
-        })),
-        deliveryConfig: {
-          deliveryType: wizard.deliveryMode,
+        subscriptionType: wizard.deliveryMode,
+        basicInfo: {
+          name: wizard.name.trim(),
+          description: wizard.description.trim(),
+          goLiveDate: wizard.goLiveDate,
         },
+        parameters: wizard.parameterCodes.map((code) => ({ code })),
+        triggers: wizard.triggerCodes.map((code) => ({ code })),
       }, actor);
       setWizardOpen(false);
       await loadDashboard();
@@ -232,12 +222,16 @@ export default function SubscriptionsPage() {
   }
 
   async function toggleStatus(subscription: Subscription) {
-    const newStatus = subscription.subscriptionStatusId === 1 ? 2 : 1;
+    const newStatus = subscription.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
     setError("");
     try {
-      const updated = await patchSubscription(subscription.subscriptionUid, { subscriptionStatusId: newStatus }, actor);
-      setSubscriptions((current) => current.map((item) => item.subscriptionUid === updated.subscriptionUid ? updated : item));
-      if (selectedSubscription?.subscriptionUid === updated.subscriptionUid) setSelectedSubscription(updated);
+      const updated = await patchSubscriptionStatus(
+        subscription.subscriptionId,
+        newStatus,
+        actor,
+      );
+      setSubscriptions((current) => current.map((item) => item.subscriptionId === updated.subscriptionId ? updated : item));
+      if (selectedSubscription?.subscriptionId === updated.subscriptionId) setSelectedSubscription(updated);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to update the subscription.");
     }
@@ -284,18 +278,18 @@ export default function SubscriptionsPage() {
                 <table className={styles.table}>
                   <thead><tr><th>Subscription</th><th>Delivery</th><th>Fields</th><th>Triggers</th><th>Go live</th><th>Status</th><th aria-label="Actions" /></tr></thead>
                   <tbody>{subscriptions.map((subscription) => {
-                    const parameterCount = new Set(subscription.triggers.flatMap((trigger) => trigger.parameterDefinitionIds)).size;
-                    const isHttp = subscription.deliveryConfig?.deliveryType === "HTTP";
-                    return <tr key={subscription.subscriptionUid}>
-                      <td><button className={styles.nameButton} type="button" onClick={() => setSelectedSubscription(subscription)}><strong>{subscription.name}</strong><span>{subscription.description || subscription.subscriptionUid}</span></button></td>
+                    const parameterCount = subscription.parameters.length;
+                    const isHttp = subscription.subscriptionType === "API_CALLBACK";
+                    return <tr key={subscription.subscriptionId}>
+                      <td><button className={styles.nameButton} type="button" onClick={() => setSelectedSubscription(subscription)}><strong>{subscription.basicInfo.name}</strong><span>{subscription.basicInfo.description || subscription.subscriptionId}</span></button></td>
                       <td><span className={`${styles.typeBadge} ${isHttp ? styles.httpBadge : styles.eventBadge}`}><Icon>{isHttp ? "webhook" : "bolt"}</Icon>{isHttp ? "API callback" : "Event"}</span></td>
                       <td><span className={styles.countBadge}>{parameterCount}</span></td>
-                      <td><div className={styles.triggerList}>{subscription.triggers.slice(0, 2).map((trigger) => <span key={trigger.eventTriggerTypeId}>{triggerName.get(trigger.eventTriggerTypeId) || `Trigger ${trigger.eventTriggerTypeId}`}</span>)}{subscription.triggers.length > 2 ? <span>+{subscription.triggers.length - 2}</span> : null}</div></td>
-                      <td><span className={styles.windowDate}>{formatDate(subscription.activatedAt)}</span></td>
-                      <td><span className={`${styles.status} ${styles[`status${STATUS_NAMES[subscription.subscriptionStatusId] || "Draft"}`]}`}><i />{STATUS_NAMES[subscription.subscriptionStatusId] || "Unknown"}</span></td>
+                      <td><div className={styles.triggerList}>{subscription.triggers.slice(0, 2).map((trigger) => <span key={trigger.code}>{trigger.name}</span>)}{subscription.triggers.length > 2 ? <span>+{subscription.triggers.length - 2}</span> : null}</div></td>
+                      <td><span className={styles.windowDate}>{formatDate(subscription.basicInfo.goLiveDate)}</span></td>
+                      <td><span className={`${styles.status} ${styles[`status${STATUS_NAMES[subscription.status] || "Draft"}`]}`}><i />{STATUS_NAMES[subscription.status] || subscription.status}</span></td>
                       <td><div className={styles.rowActions}>
-                        <button type="button" title="View details" aria-label={`View ${subscription.name}`} onClick={() => setSelectedSubscription(subscription)}><Icon>visibility</Icon></button>
-                        <button type="button" title={subscription.subscriptionStatusId === 1 ? "Pause subscription" : "Activate subscription"} aria-label={subscription.subscriptionStatusId === 1 ? `Pause ${subscription.name}` : `Activate ${subscription.name}`} onClick={() => void toggleStatus(subscription)}><Icon>{subscription.subscriptionStatusId === 1 ? "pause" : "play_arrow"}</Icon></button>
+                        <button type="button" title="View details" aria-label={`View ${subscription.basicInfo.name}`} onClick={() => setSelectedSubscription(subscription)}><Icon>visibility</Icon></button>
+                        <button type="button" title={subscription.status === "ACTIVE" ? "Pause subscription" : "Activate subscription"} aria-label={subscription.status === "ACTIVE" ? `Pause ${subscription.basicInfo.name}` : `Activate ${subscription.basicInfo.name}`} onClick={() => void toggleStatus(subscription)}><Icon>{subscription.status === "ACTIVE" ? "pause" : "play_arrow"}</Icon></button>
                       </div></td>
                     </tr>;
                   })}</tbody>
@@ -317,23 +311,23 @@ export default function SubscriptionsPage() {
               <label className={styles.field}><span>Subscription name</span><input autoFocus value={wizard.name} onChange={(event) => updateWizard("name", event.target.value)} placeholder="Order fulfillment sync" /></label>
               <label className={styles.field}><span>Description <em>Optional</em></span><textarea value={wizard.description} onChange={(event) => updateWizard("description", event.target.value)} placeholder="What this subscription is used for" rows={3} /></label>
               <fieldset className={styles.fieldset}><legend>Delivery type</legend><div className={styles.choiceGrid}>
-                <button type="button" className={wizard.deliveryMode === "HTTP" ? styles.choiceSelected : ""} onClick={() => updateWizard("deliveryMode", "HTTP")}><span><Icon>webhook</Icon></span><strong>API callback</strong><small>POST events to an HTTPS endpoint</small></button>
-                <button type="button" className={wizard.deliveryMode === "KAFKA" ? styles.choiceSelected : ""} onClick={() => updateWizard("deliveryMode", "KAFKA")}><span><Icon>bolt</Icon></span><strong>Event consumer</strong><small>Publish events to a Kafka topic</small></button>
+                <button type="button" className={wizard.deliveryMode === "API_CALLBACK" ? styles.choiceSelected : ""} onClick={() => updateWizard("deliveryMode", "API_CALLBACK")}><span><Icon>webhook</Icon></span><strong>API callback</strong><small>Use the configured API callback</small></button>
+                <button type="button" className={wizard.deliveryMode === "EVENT" ? styles.choiceSelected : ""} onClick={() => updateWizard("deliveryMode", "EVENT")}><span><Icon>bolt</Icon></span><strong>Event consumer</strong><small>Use the configured event destination</small></button>
               </div></fieldset>
             </div> : null}
 
             {wizardStep === 2 ? <div className={styles.optionsPanel}>
-              <div className={styles.optionsToolbar}><span>{wizard.parameterIds.length} of {parameters.length} selected</span><button type="button" onClick={() => updateWizard("parameterIds", wizard.parameterIds.length === parameters.length ? parameters.filter((parameter) => parameter.required).map((parameter) => parameter.id) : parameters.map((parameter) => parameter.id))}>{wizard.parameterIds.length === parameters.length ? "Required only" : "Select all"}</button></div>
+              <div className={styles.optionsToolbar}><span>{wizard.parameterCodes.length} of {parameters.length} selected</span><button type="button" onClick={() => updateWizard("parameterCodes", wizard.parameterCodes.length === parameters.length ? parameters.filter((parameter) => parameter.required).map((parameter) => parameter.code) : parameters.map((parameter) => parameter.code))}>{wizard.parameterCodes.length === parameters.length ? "Required only" : "Select all"}</button></div>
               <div className={styles.optionList}>{parameters.map((parameter) => {
-                const selected = wizard.parameterIds.includes(parameter.id);
-                return <button type="button" key={parameter.id} className={selected ? styles.optionSelected : ""} onClick={() => !parameter.required && toggleNumber("parameterIds", parameter.id)}><span className={styles.checkBox}>{selected ? <Icon>check</Icon> : null}</span><span className={styles.optionCopy}><strong>{parameter.name}{parameter.required ? <em>Required</em> : null}</strong><small>{parameter.fieldPath}</small></span></button>;
+                const selected = wizard.parameterCodes.includes(parameter.code);
+                return <button type="button" key={parameter.code} className={selected ? styles.optionSelected : ""} onClick={() => !parameter.required && toggleCode("parameterCodes", parameter.code)}><span className={styles.checkBox}>{selected ? <Icon>check</Icon> : null}</span><span className={styles.optionCopy}><strong>{parameter.name}{parameter.required ? <em>Required</em> : null}</strong><small>{parameter.fieldPath}</small></span></button>;
               })}</div>
             </div> : null}
 
             {wizardStep === 3 ? <div className={styles.formStack}>
               <fieldset className={styles.fieldset}><legend>Event triggers</legend><div className={styles.triggerChoices}>{triggers.map((trigger) => {
-                const selected = wizard.triggerIds.includes(trigger.id);
-                return <button type="button" key={trigger.id} className={selected ? styles.optionSelected : ""} onClick={() => toggleNumber("triggerIds", trigger.id)}><span className={styles.checkBox}>{selected ? <Icon>check</Icon> : null}</span><span><strong>{trigger.name}</strong><small>{trigger.description}</small></span></button>;
+                const selected = wizard.triggerCodes.includes(trigger.code);
+                return <button type="button" key={trigger.code} className={selected ? styles.optionSelected : ""} onClick={() => toggleCode("triggerCodes", trigger.code)}><span className={styles.checkBox}>{selected ? <Icon>check</Icon> : null}</span><span><strong>{trigger.name}</strong><small>{trigger.description}</small></span></button>;
               })}</div></fieldset>
               <label className={styles.field}><span>Go-live date</span><input type="date" value={wizard.goLiveDate} onChange={(event) => updateWizard("goLiveDate", event.target.value)} /></label>
             </div> : null}
@@ -348,13 +342,13 @@ export default function SubscriptionsPage() {
 
       {selectedSubscription ? <div className={styles.overlay} onMouseDown={() => setSelectedSubscription(null)}>
         <section className={`${styles.modal} ${styles.detailModal}`} role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={(event) => event.stopPropagation()}>
-          <div className={styles.modalHeader}><div><span className={styles.eyebrow}>Subscription details</span><h2 id="detail-title">{selectedSubscription.name}</h2><p>{selectedSubscription.description || "No description"}</p></div><button className={styles.closeButton} type="button" onClick={() => setSelectedSubscription(null)} aria-label="Close details"><Icon>close</Icon></button></div>
+          <div className={styles.modalHeader}><div><span className={styles.eyebrow}>Subscription details</span><h2 id="detail-title">{selectedSubscription.basicInfo.name}</h2><p>{selectedSubscription.basicInfo.description || "No description"}</p></div><button className={styles.closeButton} type="button" onClick={() => setSelectedSubscription(null)} aria-label="Close details"><Icon>close</Icon></button></div>
           <div className={styles.detailBody}>
-            <dl><div><dt>Status</dt><dd>{STATUS_NAMES[selectedSubscription.subscriptionStatusId] || "Unknown"}</dd></div><div><dt>Delivery</dt><dd>{selectedSubscription.deliveryConfig?.deliveryType === "HTTP" ? "API callback" : "Event consumer"}</dd></div><div className={styles.detailWide}><dt>Destination</dt><dd className={styles.mono}>{selectedSubscription.deliveryConfig?.endpointUrl || "Managed by delivery configuration"}</dd></div><div><dt>Go live</dt><dd>{formatDate(selectedSubscription.activatedAt)}</dd></div></dl>
-            <div className={styles.detailSection}><h3>Triggers</h3><div className={styles.detailTags}>{selectedSubscription.triggers.map((trigger) => <span key={trigger.eventTriggerTypeId}>{triggerName.get(trigger.eventTriggerTypeId) || `Trigger ${trigger.eventTriggerTypeId}`}</span>)}</div></div>
-            <div className={styles.detailSection}><h3>Projected fields</h3><p>{new Set(selectedSubscription.triggers.flatMap((trigger) => trigger.parameterDefinitionIds)).size.toLocaleString()} fields selected</p></div>
+            <dl><div><dt>Status</dt><dd>{STATUS_NAMES[selectedSubscription.status] || selectedSubscription.status}</dd></div><div><dt>Subscription type</dt><dd>{selectedSubscription.subscriptionType === "API_CALLBACK" ? "API callback" : "Event consumer"}</dd></div><div><dt>Go live</dt><dd>{formatDate(selectedSubscription.basicInfo.goLiveDate)}</dd></div></dl>
+            <div className={styles.detailSection}><h3>Triggers</h3><div className={styles.detailTags}>{selectedSubscription.triggers.map((trigger) => <span key={trigger.code}>{trigger.name}</span>)}</div></div>
+            <div className={styles.detailSection}><h3>Projected fields</h3><div className={styles.detailTags}>{selectedSubscription.parameters.map((parameter) => <span key={parameter.code}>{parameter.name}</span>)}</div></div>
           </div>
-          <footer className={styles.modalFooter}><span /><button className={styles.primaryButton} type="button" onClick={() => void toggleStatus(selectedSubscription)}><Icon>{selectedSubscription.subscriptionStatusId === 1 ? "pause" : "play_arrow"}</Icon>{selectedSubscription.subscriptionStatusId === 1 ? "Pause subscription" : "Activate subscription"}</button></footer>
+          <footer className={styles.modalFooter}><span /><button className={styles.primaryButton} type="button" onClick={() => void toggleStatus(selectedSubscription)}><Icon>{selectedSubscription.status === "ACTIVE" ? "pause" : "play_arrow"}</Icon>{selectedSubscription.status === "ACTIVE" ? "Pause subscription" : "Activate subscription"}</button></footer>
         </section>
       </div> : null}
     </main>

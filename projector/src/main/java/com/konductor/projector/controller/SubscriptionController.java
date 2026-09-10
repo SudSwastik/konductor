@@ -5,10 +5,12 @@ import com.konductor.projector.dto.ReplaceTriggersRequest;
 import com.konductor.projector.dto.SubscriptionCreateRequest;
 import com.konductor.projector.dto.SubscriptionPatchRequest;
 import com.konductor.projector.dto.SubscriptionResponse;
+import com.konductor.projector.dto.SubscriptionStatusPatchRequest;
 import com.konductor.projector.dto.SubscriptionSummaryResponse;
 import com.konductor.projector.service.SubscriptionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,35 +49,53 @@ public class SubscriptionController {
         return subscriptionService.list();
     }
 
-    @GetMapping("/{subscriptionUid}")
-    public SubscriptionResponse get(@PathVariable String subscriptionUid) {
-        return subscriptionService.get(subscriptionUid);
+    @GetMapping("/{subscriptionId}")
+    public SubscriptionResponse get(@PathVariable String subscriptionId) {
+        return subscriptionService.get(subscriptionId);
     }
 
-    @PatchMapping("/{subscriptionUid}")
+    @PatchMapping("/{subscriptionId}")
     public SubscriptionResponse patchBasic(
-            @PathVariable String subscriptionUid,
-            @RequestBody SubscriptionPatchRequest request,
+            @PathVariable String subscriptionId,
+            @Valid @RequestBody SubscriptionPatchRequest request,
             @RequestHeader(value = ACTOR_HEADER, required = false) String actor
     ) {
-        return subscriptionService.patchBasic(subscriptionUid, request, actor);
+        return subscriptionService.patchBasic(subscriptionId, request, actor);
     }
 
-    @PutMapping("/{subscriptionUid}/parameters")
+    @PatchMapping("/{subscriptionId}/status")
+    public SubscriptionResponse patchStatus(
+            @PathVariable String subscriptionId,
+            @Valid @RequestBody SubscriptionStatusPatchRequest request,
+            @RequestHeader(value = ACTOR_HEADER, required = false) String actor
+    ) {
+        return subscriptionService.patchStatus(subscriptionId, request, actor);
+    }
+
+    @PutMapping("/{subscriptionId}/parameters")
     public SubscriptionResponse replaceParameters(
-            @PathVariable String subscriptionUid,
+            @PathVariable String subscriptionId,
             @Valid @RequestBody ReplaceParametersRequest request,
             @RequestHeader(value = ACTOR_HEADER, required = false) String actor
     ) {
-        return subscriptionService.replaceParameters(subscriptionUid, request, actor);
+        return subscriptionService.replaceParameters(subscriptionId, request, actor);
     }
 
-    @PutMapping("/{subscriptionUid}/triggers")
+    @PutMapping("/{subscriptionId}/triggers")
     public SubscriptionResponse replaceTriggers(
-            @PathVariable String subscriptionUid,
-            @RequestBody ReplaceTriggersRequest request,
+            @PathVariable String subscriptionId,
+            @Valid @RequestBody ReplaceTriggersRequest request,
             @RequestHeader(value = ACTOR_HEADER, required = false) String actor
     ) {
-        return subscriptionService.replaceTriggers(subscriptionUid, request, actor);
+        return subscriptionService.replaceTriggers(subscriptionId, request, actor);
+    }
+
+    @DeleteMapping("/{subscriptionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(
+            @PathVariable String subscriptionId,
+            @RequestHeader(value = ACTOR_HEADER, required = false) String actor
+    ) {
+        subscriptionService.softDelete(subscriptionId, actor);
     }
 }

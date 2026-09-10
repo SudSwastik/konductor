@@ -1,6 +1,6 @@
 package com.konductor.projector.dto;
 
-public record MasterDataResponse(
+public record SubscriptionTriggerResponse(
         String code,
         String name,
         String description

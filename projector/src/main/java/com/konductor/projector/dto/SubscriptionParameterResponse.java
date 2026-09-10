@@ -1,8 +1,7 @@
 package com.konductor.projector.dto;
 
-public record ParameterDefinitionResponse(
+public record SubscriptionParameterResponse(
         String code,
-        String dataType,
         String name,
         String description,
         String fieldPath,

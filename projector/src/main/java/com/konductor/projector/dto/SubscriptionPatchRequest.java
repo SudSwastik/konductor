@@ -1,13 +1,9 @@
 package com.konductor.projector.dto;
 
-import java.time.Instant;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 public record SubscriptionPatchRequest(
-        Short subscriptionTypeId,
-        Short subscriptionStatusId,
-        String name,
-        String description,
-        Instant activatedAt,
-        Instant deactivatedAt
+        @Valid @NotNull SubscriptionBasicInfoPatchRequest basicInfo
 ) {
 }

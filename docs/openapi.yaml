@@ -1,0 +1,678 @@
+openapi: 3.1.0
+info:
+  title: Konductor HTTP API
+  version: 0.2.0
+  description: |
+    HTTP contract for the Konductor Producer and Projector services.
+    Each path declares the service that implements it because the services run
+    independently on different local ports.
+tags:
+  - name: Events
+    description: Publish source events to Kafka through the Producer service.
+  - name: Subscriptions
+    description: Create and manage event projection subscriptions.
+  - name: Reference data
+    description: Read the trigger and parameter choices used by subscriptions.
+  - name: Operations
+    description: Spring Boot Actuator endpoints exposed by each service.
+
+paths:
+  /api/v1/events:
+    servers:
+      - url: http://localhost:8084
+        description: Local Producer service
+    post:
+      tags: [Events]
+      operationId: publishEvent
+      summary: Publish a source event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishEventRequest"
+            example:
+              triggerType: ORDER_CREATED
+              sourceEventId: src_01J8Z9Z4H2M5S2T1P0Q9R8V7W6
+              occurredAt: "2026-09-10T10:30:00Z"
+              sourceSystem: order-service
+              correlationId: corr_01J8Z9Z4H2M5S2T1P0Q9R8V7W6
+              body:
+                orderId: order-1001
+                customerId: customer-42
+      responses:
+        "202":
+          description: Event accepted for publication.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishEventResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/events/{triggerType}:
+    servers:
+      - url: http://localhost:8084
+        description: Local Producer service
+    post:
+      tags: [Events]
+      operationId: publishSampleEvent
+      summary: Publish a generated sample event
+      parameters:
+        - name: triggerType
+          in: path
+          required: true
+          description: Trigger code used to select the sample payload.
+          schema:
+            type: string
+          example: ORDER_CREATED
+      responses:
+        "202":
+          description: Sample event accepted for publication.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishEventResponse"
+
+  /api/v1/subscriptions:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    get:
+      tags: [Subscriptions]
+      operationId: listSubscriptions
+      summary: List active subscriptions
+      description: Returns summary rows only; parameters, triggers, and delivery details are omitted.
+      responses:
+        "200":
+          description: Active subscriptions ordered newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionSummary"
+    post:
+      tags: [Subscriptions]
+      operationId: createSubscription
+      summary: Create a subscription
+      parameters:
+        - $ref: "#/components/parameters/ActorHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionCreateRequest"
+            example:
+              subscriptionType: EVENT
+              basicInfo:
+                name: Order fulfillment sync
+                description: Projects order changes for fulfillment.
+                goLiveDate: "2026-09-10"
+              parameters:
+                - code: ORDER_ID
+                - code: ORDER_STATUS
+              triggers:
+                - code: ORDER_CREATED
+      responses:
+        "201":
+          description: Subscription created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/v1/subscriptions/{subscriptionId}:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    parameters:
+      - $ref: "#/components/parameters/SubscriptionId"
+    get:
+      tags: [Subscriptions]
+      operationId: getSubscription
+      summary: Get full subscription details
+      responses:
+        "200":
+          description: Full subscription basic information, parameters, triggers, audit data, and delivery configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Subscriptions]
+      operationId: updateSubscription
+      summary: Update subscription basic information
+      parameters:
+        - $ref: "#/components/parameters/ActorHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionPatchRequest"
+            example:
+              basicInfo:
+                name: Updated fulfillment sync
+                description: Updated subscription description.
+                goLiveDate: "2026-09-20"
+      responses:
+        "200":
+          description: Subscription updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Subscriptions]
+      operationId: deleteSubscription
+      summary: Soft-delete a subscription
+      description: Marks the subscription inactive and derives the archived status and audit fields internally.
+      parameters:
+        - $ref: "#/components/parameters/ActorHeader"
+      responses:
+        "204":
+          description: Subscription soft-deleted.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/subscriptions/{subscriptionId}/status:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    patch:
+      tags: [Subscriptions]
+      operationId: updateSubscriptionStatus
+      summary: Update subscription status
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+        - $ref: "#/components/parameters/ActorHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionStatusPatchRequest"
+            example:
+              status: PAUSED
+      responses:
+        "200":
+          description: Subscription status updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/subscriptions/{subscriptionId}/parameters:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    put:
+      tags: [Subscriptions]
+      operationId: replaceSubscriptionParameters
+      summary: Replace trigger-to-parameter selections
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+        - $ref: "#/components/parameters/ActorHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplaceParametersRequest"
+            example:
+              parameters:
+                - code: EVENT_ID
+                - code: ORDER_ID
+      responses:
+        "200":
+          description: Parameter selections replaced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/subscriptions/{subscriptionId}/triggers:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    put:
+      tags: [Subscriptions]
+      operationId: replaceSubscriptionTriggers
+      summary: Replace subscription triggers
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+        - $ref: "#/components/parameters/ActorHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplaceTriggersRequest"
+            example:
+              triggers:
+                - code: ORDER_CREATED
+                - code: ORDER_UPDATED
+      responses:
+        "200":
+          description: Trigger selections replaced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/triggers:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    get:
+      tags: [Reference data]
+      operationId: listEventTriggers
+      summary: List active event trigger types
+      responses:
+        "200":
+          description: Active trigger types ordered by ID.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MasterData"
+
+  /api/v1/parameters:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    get:
+      tags: [Reference data]
+      operationId: listParameterDefinitions
+      summary: List active parameter definitions
+      responses:
+        "200":
+          description: Active parameter definitions ordered by ID.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParameterDefinition"
+
+  /actuator/health:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+      - url: http://localhost:8084
+        description: Local Producer service
+      - url: http://localhost:8086
+        description: Local Consumer service
+    get:
+      tags: [Operations]
+      operationId: getHealth
+      summary: Get service health
+      responses:
+        "200":
+          description: Service health information.
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                $ref: "#/components/schemas/ActuatorPayload"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActuatorPayload"
+
+  /actuator/info:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+      - url: http://localhost:8084
+        description: Local Producer service
+      - url: http://localhost:8086
+        description: Local Consumer service
+    get:
+      tags: [Operations]
+      operationId: getInfo
+      summary: Get service information
+      responses:
+        "200":
+          description: Configured service information.
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                $ref: "#/components/schemas/ActuatorPayload"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActuatorPayload"
+
+components:
+  parameters:
+    ActorHeader:
+      name: X-User-Email
+      in: header
+      required: false
+      description: Actor recorded in audit fields. The service uses `system` when omitted or blank.
+      schema:
+        type: string
+        format: email
+        maxLength: 320
+    SubscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: sub_550e8400e29b41d4a716446655440000
+
+  responses:
+    BadRequest:
+      description: Request validation or referenced master-data validation failed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: The active subscription was not found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    PublishEventRequest:
+      type: object
+      required: [triggerType, body]
+      properties:
+        triggerType:
+          type: string
+          minLength: 1
+        sourceEventId:
+          type: [string, "null"]
+          description: Generated by the Producer when omitted or blank.
+        occurredAt:
+          type: [string, "null"]
+          format: date-time
+          description: Defaults to the current time when omitted.
+        sourceSystem:
+          type: [string, "null"]
+          description: Defaults to `konductor-producer` when omitted or blank.
+        correlationId:
+          type: [string, "null"]
+          description: Generated by the Producer when omitted or blank.
+        body:
+          type: object
+          minProperties: 1
+          additionalProperties: true
+
+    PublishEventResponse:
+      type: object
+      required: [topic, sourceEventId, triggerType, occurredAt]
+      properties:
+        topic:
+          type: string
+        sourceEventId:
+          type: string
+        triggerType:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+
+    SubscriptionCreateRequest:
+      type: object
+      description: Status, activation timestamp, active flag, IDs, and audit fields are derived by the service.
+      required: [subscriptionType, basicInfo, parameters, triggers]
+      properties:
+        subscriptionType:
+          type: string
+          enum: [EVENT, API_CALLBACK]
+          description: Active subscription-type code resolved from master data.
+        basicInfo:
+          $ref: "#/components/schemas/SubscriptionBasicInfo"
+        parameters:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SubscriptionParameter"
+        triggers:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SubscriptionTrigger"
+
+    SubscriptionBasicInfo:
+      type: object
+      required: [name, goLiveDate]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: [string, "null"]
+        goLiveDate:
+          type: string
+          format: date
+          description: Converted by the service to the activation timestamp at 00:00 UTC.
+
+    SubscriptionParameter:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          description: Unique active parameter-definition code.
+
+    SubscriptionTrigger:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          description: Unique active event-trigger-type code.
+
+    SubscriptionPatchRequest:
+      type: object
+      required: [basicInfo]
+      properties:
+        basicInfo:
+          $ref: "#/components/schemas/SubscriptionBasicInfoPatch"
+
+    SubscriptionBasicInfoPatch:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: [string, "null"]
+        description:
+          type: [string, "null"]
+        goLiveDate:
+          type: [string, "null"]
+          format: date
+
+    SubscriptionStatusPatchRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          minLength: 1
+          examples: [ACTIVE, PAUSED]
+
+    ReplaceParametersRequest:
+      type: object
+      required: [parameters]
+      properties:
+        parameters:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SubscriptionParameter"
+
+    ReplaceTriggersRequest:
+      type: object
+      required: [triggers]
+      properties:
+        triggers:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SubscriptionTrigger"
+
+    SubscriptionSummary:
+      type: object
+      required:
+        - subscriptionId
+        - subscriptionVersion
+        - subscriptionType
+        - status
+        - basicInfo
+      properties:
+        subscriptionId:
+          type: string
+        subscriptionVersion:
+          type: integer
+          format: int32
+        subscriptionType:
+          type: string
+        status:
+          type: string
+        basicInfo:
+          $ref: "#/components/schemas/SubscriptionBasicInfoResponse"
+
+    SubscriptionBasicInfoResponse:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        goLiveDate:
+          type: [string, "null"]
+          format: date
+
+    Subscription:
+      allOf:
+        - $ref: "#/components/schemas/SubscriptionSummary"
+        - type: object
+          required: [parameters, triggers]
+          properties:
+            parameters:
+              type: array
+              items:
+                $ref: "#/components/schemas/SelectedParameter"
+            triggers:
+              type: array
+              items:
+                $ref: "#/components/schemas/SelectedTrigger"
+
+    SelectedParameter:
+      type: object
+      required: [code, name, fieldPath, required]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        fieldPath:
+          type: string
+        required:
+          type: boolean
+
+    SelectedTrigger:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+
+    MasterData:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+
+    ParameterDefinition:
+      type: object
+      required: [code, dataType, name, fieldPath, required]
+      properties:
+        code:
+          type: string
+        dataType:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, "null"]
+        fieldPath:
+          type: string
+        required:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      description: Spring error response. Fields vary by error source and framework configuration.
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+      additionalProperties: true
+
+    ActuatorPayload:
+      type: object
+      description: Actuator response whose fields depend on the endpoint and enabled contributors.
+      additionalProperties: true

@@ -26,6 +26,6 @@ public class TriggerController {
     }
 
     private MasterDataResponse toMasterDataResponse(EventTriggerType value) {
-        return new MasterDataResponse(value.getId(), value.getCode(), value.getName(), value.getDescription());
+        return new MasterDataResponse(value.getCode(), value.getName(), value.getDescription());
     }
 }
