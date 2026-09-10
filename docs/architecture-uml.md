@@ -188,6 +188,7 @@ erDiagram
     parameter_definition {
         bigint id PK
         smallint data_type_id FK
+        string code UK
         string name
         string description
         string field_path
@@ -378,6 +379,7 @@ classDiagram
     class ParameterDefinition {
         +Long id
         +Short dataTypeId
+        +String code
         +String name
         +String fieldPath
         +boolean required

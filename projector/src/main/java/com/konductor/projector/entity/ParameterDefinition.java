@@ -17,6 +17,7 @@ public class ParameterDefinition extends MutableAuditFields {
     @Column(name = "data_type_id")
     private Short dataTypeId;
 
+    private String code;
     private String name;
     private String description;
 
@@ -28,6 +29,7 @@ public class ParameterDefinition extends MutableAuditFields {
 
     public Long getId() { return id; }
     public Short getDataTypeId() { return dataTypeId; }
+    public String getCode() { return code; }
     public String getName() { return name; }
     public String getDescription() { return description; }
     public String getFieldPath() { return fieldPath; }

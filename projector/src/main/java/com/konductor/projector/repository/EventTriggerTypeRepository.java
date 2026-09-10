@@ -12,5 +12,9 @@ public interface EventTriggerTypeRepository extends JpaRepository<EventTriggerTy
 
     long countByIdInAndActiveTrue(Collection<Short> ids);
 
+    List<EventTriggerType> findByCodeInAndActiveTrue(Collection<String> codes);
+
+    List<EventTriggerType> findByIdInAndActiveTrue(Collection<Short> ids);
+
     Optional<EventTriggerType> findByCodeAndActiveTrue(String code);
 }
