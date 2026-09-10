@@ -8,7 +8,11 @@ Konductor is a flat multi-project workspace for building an event subscription p
 - `publisher/` - planned service for publishing source events.
 - `projector/` - Spring Boot scaffold for consuming source events and projecting them downstream.
 - `consumer/` - planned service for consumer-side processing.
-- `docs/` - planned architecture notes, contracts, and operations documentation.
+- `docs/` - architecture notes, contracts, and operations documentation.
+
+## Architecture
+
+View the [GitHub-rendered UML and database diagrams](docs/architecture-uml.md).
 
 ## Current UI
 
