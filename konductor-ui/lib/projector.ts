@@ -57,11 +57,11 @@ export type CreateSubscriptionInput = {
   triggers: TriggerSelection[];
   deliveryConfig: {
     deliveryType: string;
-    endpointUrl: string;
-    httpMethod: string | null;
-    timeoutSeconds: number;
-    maxRetryCount: number;
-    retryBackoffSeconds: number;
+    endpointUrl?: string | null;
+    httpMethod?: string | null;
+    timeoutSeconds?: number;
+    maxRetryCount?: number;
+    retryBackoffSeconds?: number;
   };
 };
 

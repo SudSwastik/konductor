@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Waypoints } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { getCurrentUser, signIn } from "aws-amplify/auth";
@@ -70,7 +71,7 @@ export default function LoginPage() {
       <section className={styles.brandPanel} aria-label="Konductor">
         <div className={styles.brandGlow} />
         <div className={styles.brandMark}>
-          <span className={styles.logo}>K</span>
+          <span className={styles.logo} aria-hidden="true"><Waypoints size={22} strokeWidth={2.25} /></span>
           <span>Konductor</span>
         </div>
 
