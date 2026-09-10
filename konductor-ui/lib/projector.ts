@@ -13,7 +13,7 @@ export type ParameterDefinition = {
   required: boolean;
 };
 
-export type Subscription = {
+export type SubscriptionSummary = {
   subscriptionId: string;
   subscriptionVersion: number;
   subscriptionType: "EVENT" | "API_CALLBACK";
@@ -23,6 +23,9 @@ export type Subscription = {
     description: string | null;
     goLiveDate: string | null;
   };
+};
+
+export type Subscription = SubscriptionSummary & {
   parameters: Array<{
     code: string;
     name: string;
@@ -36,8 +39,6 @@ export type Subscription = {
     description: string | null;
   }>;
 };
-
-type SubscriptionSummary = Omit<Subscription, "parameters" | "triggers">;
 
 export type CreateSubscriptionInput = {
   subscriptionType: "EVENT" | "API_CALLBACK";
@@ -64,8 +65,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     try {
-      const body = (await response.json()) as { detail?: string; message?: string };
-      message = body.detail || body.message || message;
+      const body = (await response.json()) as {
+        detail?: string;
+        message?: string;
+        error?: string;
+        errors?: Array<{ defaultMessage?: string; field?: string }>;
+      };
+      const validationMessage = body.errors?.
+        map((error) => [error.field, error.defaultMessage].filter(Boolean).join(": "))
+        .filter(Boolean)
+        .join(", ");
+      message = body.detail || body.message || validationMessage || body.error || message;
     } catch {
       // Preserve the status-based message for non-JSON responses.
     }
@@ -75,17 +85,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function listSubscriptions(): Promise<Subscription[]> {
-  const summaries = await request<SubscriptionSummary[]>("/subscriptions");
-  const settled = await Promise.allSettled(
-    summaries.map((item) => getSubscription(item.subscriptionId)),
-  );
-
-  return settled.map((result, index) =>
-    result.status === "fulfilled"
-      ? result.value
-      : { ...summaries[index], parameters: [], triggers: [] },
-  );
+export function listSubscriptions() {
+  return request<SubscriptionSummary[]>("/subscriptions");
 }
 
 export function getSubscription(subscriptionId: string) {
@@ -120,6 +121,30 @@ export function patchSubscription(
     method: "PATCH",
     headers: actor ? { "X-User-Email": actor } : undefined,
     body: JSON.stringify(input),
+  });
+}
+
+export function replaceSubscriptionParameters(
+  subscriptionId: string,
+  parameters: Array<{ code: string }>,
+  actor?: string,
+) {
+  return request<Subscription>(`/subscriptions/${subscriptionId}/parameters`, {
+    method: "PUT",
+    headers: actor ? { "X-User-Email": actor } : undefined,
+    body: JSON.stringify({ parameters }),
+  });
+}
+
+export function replaceSubscriptionTriggers(
+  subscriptionId: string,
+  triggers: Array<{ code: string }>,
+  actor?: string,
+) {
+  return request<Subscription>(`/subscriptions/${subscriptionId}/triggers`, {
+    method: "PUT",
+    headers: actor ? { "X-User-Email": actor } : undefined,
+    body: JSON.stringify({ triggers }),
   });
 }
 
