@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getCurrentUser, signOut } from "aws-amplify/auth";
 import {
   ArrowRight,
+  CalendarClock,
   Check,
   CircleAlert,
   Eye,
@@ -14,6 +15,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Trash2,
   Webhook,
   Waypoints,
   X,
@@ -31,19 +33,27 @@ import {
   MasterData,
   ParameterDefinition,
   patchSubscription,
-  patchSubscriptionStatus,
   replaceSubscriptionParameters,
   replaceSubscriptionTriggers,
   Subscription,
   SubscriptionSummary,
+  SubscriptionStatus,
+  transitionSubscription,
 } from "@/lib/projector";
 import styles from "../page.module.css";
 
 const STATUS_NAMES: Record<string, string> = {
+  SCHEDULED: "Scheduled",
   ACTIVE: "Active",
-  PAUSED: "Paused",
-  DRAFT: "Draft",
+  INACTIVE: "Inactive",
   ARCHIVED: "Archived",
+};
+
+const STATUS_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
+  SCHEDULED: ["ACTIVE", "INACTIVE", "ARCHIVED"],
+  ACTIVE: ["INACTIVE", "SCHEDULED", "ARCHIVED"],
+  INACTIVE: ["ACTIVE", "SCHEDULED", "ARCHIVED"],
+  ARCHIVED: ["INACTIVE"],
 };
 
 type DeliveryMode = "API_CALLBACK" | "EVENT";
@@ -70,6 +80,7 @@ function Icon({ children }: { children: string }) {
   const icons: Record<string, LucideIcon> = {
     hub: Waypoints,
     refresh: RefreshCw,
+    calendar_clock: CalendarClock,
     add: Plus,
     logout: LogOut,
     error: CircleAlert,
@@ -83,6 +94,7 @@ function Icon({ children }: { children: string }) {
     check: Check,
     arrow_forward: ArrowRight,
     close: X,
+    delete: Trash2,
   };
   const Glyph = icons[children] || CircleAlert;
   return <span className={styles.icon} aria-hidden="true"><Glyph size={16} strokeWidth={2.25} /></span>;
@@ -122,6 +134,9 @@ export default function SubscriptionsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [editingSubscriptionId, setEditingSubscriptionId] = useState<string | null>(null);
+  const [reschedulingSubscriptionId, setReschedulingSubscriptionId] = useState<string | null>(null);
+  const [inlineRescheduleId, setInlineRescheduleId] = useState<string | null>(null);
+  const [inlineRescheduleDate, setInlineRescheduleDate] = useState("");
   const [loadingSubscriptionId, setLoadingSubscriptionId] = useState<string | null>(null);
 
   const loadDashboard = useCallback(async () => {
@@ -166,6 +181,7 @@ export default function SubscriptionsPage() {
 
   function openWizard() {
     setEditingSubscriptionId(null);
+    setReschedulingSubscriptionId(null);
     setWizard({
       ...emptyWizard,
       goLiveDate: new Date().toISOString().slice(0, 10),
@@ -216,10 +232,38 @@ export default function SubscriptionsPage() {
     }
   }
 
+  async function openRescheduleWizard(subscriptionId: string, loadedSubscription?: Subscription) {
+    setReschedulingSubscriptionId(subscriptionId);
+    await openEditWizard(subscriptionId, loadedSubscription);
+    setWizardStep(3);
+  }
+
+  function startInlineReschedule(subscription: SubscriptionSummary) {
+    setInlineRescheduleId(subscription.subscriptionId);
+    setInlineRescheduleDate(subscription.basicInfo.goLiveDate || new Date().toISOString().slice(0, 10));
+  }
+
+  async function saveInlineReschedule(subscription: SubscriptionSummary) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!inlineRescheduleDate || inlineRescheduleDate <= today) {
+      setError("Choose a future go-live date to reschedule this subscription.");
+      return;
+    }
+    try {
+      await patchSubscription(subscription.subscriptionId, { basicInfo: { goLiveDate: inlineRescheduleDate } }, actor);
+      await transitionSubscription(subscription.subscriptionId, "SCHEDULED", actor);
+      setInlineRescheduleId(null);
+      await loadDashboard();
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Unable to reschedule the subscription.");
+    }
+  }
+
   function closeWizard() {
     if (isSaving) return;
     setWizardOpen(false);
     setEditingSubscriptionId(null);
+    setReschedulingSubscriptionId(null);
     setWizardError("");
   }
 
@@ -251,12 +295,16 @@ export default function SubscriptionsPage() {
   }
 
   async function saveSubscription() {
-    if (!wizard.triggerCodes.length) {
+    if (!reschedulingSubscriptionId && !wizard.triggerCodes.length) {
       setWizardError("Select at least one trigger.");
       return;
     }
     if (!wizard.goLiveDate) {
       setWizardError("Choose a go-live date.");
+      return;
+    }
+    if (reschedulingSubscriptionId && wizard.goLiveDate <= new Date().toISOString().slice(0, 10)) {
+      setWizardError("Choose a future go-live date to reschedule this subscription.");
       return;
     }
 
@@ -271,16 +319,21 @@ export default function SubscriptionsPage() {
             goLiveDate: wizard.goLiveDate,
           },
         }, actor);
-        await replaceSubscriptionParameters(
-          editingSubscriptionId,
-          wizard.parameterCodes.map((code) => ({ code })),
-          actor,
-        );
-        await replaceSubscriptionTriggers(
-          editingSubscriptionId,
-          wizard.triggerCodes.map((code) => ({ code })),
-          actor,
-        );
+        if (!reschedulingSubscriptionId) {
+          await replaceSubscriptionParameters(
+            editingSubscriptionId,
+            wizard.parameterCodes.map((code) => ({ code })),
+            actor,
+          );
+          await replaceSubscriptionTriggers(
+            editingSubscriptionId,
+            wizard.triggerCodes.map((code) => ({ code })),
+            actor,
+          );
+        }
+        if (reschedulingSubscriptionId === editingSubscriptionId) {
+          await transitionSubscription(editingSubscriptionId, "SCHEDULED", actor);
+        }
       } else {
         await createSubscription({
           subscriptionType: wizard.deliveryMode,
@@ -295,6 +348,7 @@ export default function SubscriptionsPage() {
       }
       setWizardOpen(false);
       setEditingSubscriptionId(null);
+      setReschedulingSubscriptionId(null);
       await loadDashboard();
     } catch (caughtError) {
       setWizardError(caughtError instanceof Error ? caughtError.message : `Unable to ${editingSubscriptionId ? "update" : "create"} the subscription.`);
@@ -303,11 +357,10 @@ export default function SubscriptionsPage() {
     }
   }
 
-  async function toggleStatus(subscription: SubscriptionSummary) {
-    const newStatus = subscription.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
+  async function changeStatus(subscription: SubscriptionSummary, newStatus: SubscriptionStatus) {
     setError("");
     try {
-      const updated = await patchSubscriptionStatus(
+      const updated = await transitionSubscription(
         subscription.subscriptionId,
         newStatus,
         actor,
@@ -315,7 +368,7 @@ export default function SubscriptionsPage() {
       setSubscriptions((current) => current.map((item) => item.subscriptionId === updated.subscriptionId ? toSummary(updated) : item));
       if (selectedSubscription?.subscriptionId === updated.subscriptionId) setSelectedSubscription(updated);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to update the subscription.");
+      setError(caughtError instanceof Error ? caughtError.message : "Unable to update the subscription status.");
     }
   }
 
@@ -361,6 +414,7 @@ export default function SubscriptionsPage() {
                   <thead><tr><th>Subscription</th><th>Delivery</th><th>Go live</th><th>Status</th><th aria-label="Actions" /></tr></thead>
                   <tbody>{subscriptions.map((subscription) => {
                     const isHttp = subscription.subscriptionType === "API_CALLBACK";
+                    const nextStatus = STATUS_TRANSITIONS[subscription.status]?.[0];
                     return <tr key={subscription.subscriptionId}>
                       <td><button className={styles.nameButton} type="button" onClick={() => void openSubscription(subscription.subscriptionId)}><strong>{subscription.basicInfo.name}</strong><span>{subscription.basicInfo.description || subscription.subscriptionId}</span></button></td>
                       <td><span className={`${styles.typeBadge} ${isHttp ? styles.httpBadge : styles.eventBadge}`}><Icon>{isHttp ? "webhook" : "bolt"}</Icon>{isHttp ? "API callback" : "Event"}</span></td>
@@ -369,7 +423,8 @@ export default function SubscriptionsPage() {
                       <td><div className={styles.rowActions}>
                         <button type="button" title="View details" aria-label={`View ${subscription.basicInfo.name}`} disabled={loadingSubscriptionId === subscription.subscriptionId} onClick={() => void openSubscription(subscription.subscriptionId)}><Icon>visibility</Icon></button>
                         <button type="button" title="Edit subscription" aria-label={`Edit ${subscription.basicInfo.name}`} disabled={loadingSubscriptionId === subscription.subscriptionId} onClick={() => void openEditWizard(subscription.subscriptionId)}><Icon>edit</Icon></button>
-                        <button type="button" title={subscription.status === "ACTIVE" ? "Pause subscription" : "Activate subscription"} aria-label={subscription.status === "ACTIVE" ? `Pause ${subscription.basicInfo.name}` : `Activate ${subscription.basicInfo.name}`} onClick={() => void toggleStatus(subscription)}><Icon>{subscription.status === "ACTIVE" ? "pause" : "play_arrow"}</Icon></button>
+                        {subscription.status !== "ARCHIVED" ? <>{inlineRescheduleId === subscription.subscriptionId ? <div className={styles.reschedulePopover}><label htmlFor={`reschedule-${subscription.subscriptionId}`}>New go-live date</label><input className={styles.inlineDateInput} id={`reschedule-${subscription.subscriptionId}`} type="date" aria-label={`New go-live date for ${subscription.basicInfo.name}`} value={inlineRescheduleDate} onChange={(event) => setInlineRescheduleDate(event.target.value)} /><div><button type="button" title="Save reschedule" aria-label={`Save reschedule for ${subscription.basicInfo.name}`} onClick={() => void saveInlineReschedule(subscription)}><Icon>check</Icon></button><button type="button" title="Cancel reschedule" aria-label={`Cancel reschedule for ${subscription.basicInfo.name}`} onClick={() => setInlineRescheduleId(null)}><Icon>close</Icon></button></div></div> : <button type="button" title="Reschedule subscription" aria-label={`Reschedule ${subscription.basicInfo.name}`} disabled={loadingSubscriptionId === subscription.subscriptionId} onClick={() => startInlineReschedule(subscription)}><Icon>calendar_clock</Icon></button>}<button type="button" title="Archive subscription" aria-label={`Archive ${subscription.basicInfo.name}`} disabled={loadingSubscriptionId === subscription.subscriptionId} onClick={() => void changeStatus(subscription, "ARCHIVED")}><Icon>delete</Icon></button></> : null}
+                        {nextStatus ? <button type="button" title={`${STATUS_NAMES[nextStatus]} subscription`} aria-label={`${STATUS_NAMES[nextStatus]} ${subscription.basicInfo.name}`} onClick={() => void changeStatus(subscription, nextStatus)}><Icon>{nextStatus === "ARCHIVED" ? "close" : nextStatus === "SCHEDULED" ? "calendar_clock" : "play_arrow"}</Icon></button> : null}
                       </div></td>
                     </tr>;
                   })}</tbody>
@@ -382,7 +437,7 @@ export default function SubscriptionsPage() {
       {wizardOpen ? <div className={styles.overlay} onMouseDown={closeWizard}>
         <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="wizard-title" onMouseDown={(event) => event.stopPropagation()}>
           <div className={styles.modalHeader}>
-            <div><span className={styles.eyebrow}>{editingSubscriptionId ? "Edit subscription" : "New subscription"} · Step {wizardStep} of 3</span><h2 id="wizard-title">{wizardStep === 1 && (editingSubscriptionId ? "Update basic information" : "Choose a destination")}{wizardStep === 2 && "Select subscription fields"}{wizardStep === 3 && "Choose triggers and go-live date"}</h2><p>{wizardStep === 1 && (editingSubscriptionId ? "Update the subscription name, description, and go-live date." : "Name the subscription and choose where events should go.")}{wizardStep === 2 && "Choose the exact data included in every projected event."}{wizardStep === 3 && "Select the events that should publish this subscription."}</p></div>
+            <div><span className={styles.eyebrow}>{reschedulingSubscriptionId ? "Reschedule subscription" : editingSubscriptionId ? "Edit subscription" : "New subscription"} · Step {wizardStep} of 3</span><h2 id="wizard-title">{wizardStep === 1 && (editingSubscriptionId ? "Update basic information" : "Choose a destination")}{wizardStep === 2 && "Select subscription fields"}{wizardStep === 3 && (reschedulingSubscriptionId ? "Choose a new go-live date" : "Choose triggers and go-live date")}</h2><p>{wizardStep === 1 && (editingSubscriptionId ? "Update the subscription name, description, or go-live date." : "Name the subscription and choose where events should go.")}{wizardStep === 2 && "Choose the exact data included in every projected event."}{wizardStep === 3 && (reschedulingSubscriptionId ? "Select a future date. The subscription will remain scheduled until that date." : "Select the events that should publish this subscription.")}</p></div>
             <button className={styles.closeButton} type="button" onClick={closeWizard} aria-label="Close wizard"><Icon>close</Icon></button>
           </div>
           <div className={styles.progress} aria-label={`Step ${wizardStep} of 3`}>{[1, 2, 3].map((step) => <span key={step} className={step <= wizardStep ? styles.progressActive : ""} />)}</div>
@@ -405,10 +460,10 @@ export default function SubscriptionsPage() {
             </div> : null}
 
             {wizardStep === 3 ? <div className={styles.formStack}>
-              <fieldset className={styles.fieldset}><legend>Event triggers</legend><div className={styles.triggerChoices}>{triggers.map((trigger) => {
+              {!reschedulingSubscriptionId ? <fieldset className={styles.fieldset}><legend>Event triggers</legend><div className={styles.triggerChoices}>{triggers.map((trigger) => {
                 const selected = wizard.triggerCodes.includes(trigger.code);
                 return <button type="button" key={trigger.code} className={selected ? styles.optionSelected : ""} onClick={() => toggleCode("triggerCodes", trigger.code)}><span className={styles.checkBox}>{selected ? <Icon>check</Icon> : null}</span><span><strong>{trigger.name}</strong><small>{trigger.description}</small></span></button>;
-              })}</div></fieldset>
+              })}</div></fieldset> : null}
               <label className={styles.field}><span>Go-live date</span><input type="date" value={wizard.goLiveDate} onChange={(event) => updateWizard("goLiveDate", event.target.value)} /></label>
             </div> : null}
             {wizardError ? <p className={styles.wizardError} role="alert"><Icon>error</Icon>{wizardError}</p> : null}
@@ -428,7 +483,7 @@ export default function SubscriptionsPage() {
             <div className={styles.detailSection}><h3>Triggers</h3><div className={styles.detailTags}>{selectedSubscription.triggers.map((trigger) => <span key={trigger.code}>{trigger.name}</span>)}</div></div>
             <div className={styles.detailSection}><h3>Projected fields</h3><div className={styles.detailTags}>{selectedSubscription.parameters.map((parameter) => <span key={parameter.code}>{parameter.name}</span>)}</div></div>
           </div>
-          <footer className={styles.modalFooter}><span /><div><button className={styles.secondaryButton} type="button" onClick={() => void openEditWizard(selectedSubscription.subscriptionId, selectedSubscription)}><Icon>edit</Icon>Edit subscription</button><button className={styles.primaryButton} type="button" onClick={() => void toggleStatus(selectedSubscription)}><Icon>{selectedSubscription.status === "ACTIVE" ? "pause" : "play_arrow"}</Icon>{selectedSubscription.status === "ACTIVE" ? "Pause subscription" : "Activate subscription"}</button></div></footer>
+          <footer className={styles.modalFooter}><span /><div><button className={styles.secondaryButton} type="button" onClick={() => void openEditWizard(selectedSubscription.subscriptionId, selectedSubscription)}><Icon>edit</Icon>Edit subscription</button>{selectedSubscription.status !== "ARCHIVED" ? <button className={styles.secondaryButton} type="button" onClick={() => void openRescheduleWizard(selectedSubscription.subscriptionId, selectedSubscription)}><Icon>calendar_clock</Icon>Reschedule</button> : null}{STATUS_TRANSITIONS[selectedSubscription.status].map((nextStatus) => <button className={nextStatus === "ARCHIVED" ? styles.secondaryButton : styles.primaryButton} type="button" key={nextStatus} onClick={() => void changeStatus(selectedSubscription, nextStatus)}>{nextStatus === "SCHEDULED" ? "Schedule" : STATUS_NAMES[nextStatus]}</button>)}</div></footer>
         </section>
       </div> : null}
     </main>

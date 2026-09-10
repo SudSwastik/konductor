@@ -5,9 +5,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
-    Optional<Subscription> findBySubscriptionUidAndActiveTrue(String subscriptionUid);
+    Optional<Subscription> findBySubscriptionUid(String subscriptionUid);
 
-    List<Subscription> findByActiveTrueOrderByCreatedAtDesc();
+    List<Subscription> findAllByOrderByCreatedAtDesc();
+
+    List<Subscription> findBySubscriptionStatusIdAndActivatedAtLessThanEqualAndActiveTrue(
+            Short subscriptionStatusId,
+            Instant activatedAt
+    );
 }

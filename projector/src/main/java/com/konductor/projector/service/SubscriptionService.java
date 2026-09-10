@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -42,8 +43,6 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @Service
 public class SubscriptionService {
     private static final String SYSTEM_ACTOR = "SYSTEM";
-    private static final String INITIAL_STATUS_CODE = "ACTIVE";
-
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionTypeRepository subscriptionTypeRepository;
     private final SubscriptionStatusRepository subscriptionStatusRepository;
@@ -51,6 +50,7 @@ public class SubscriptionService {
     private final EventTriggerSelectionRepository eventTriggerSelectionRepository;
     private final ParameterDefinitionRepository parameterDefinitionRepository;
     private final ParameterSelectionRepository parameterSelectionRepository;
+    private final SubscriptionLifecyclePolicy lifecyclePolicy;
 
     public SubscriptionService(
             SubscriptionRepository subscriptionRepository,
@@ -59,7 +59,8 @@ public class SubscriptionService {
             EventTriggerTypeRepository eventTriggerTypeRepository,
             EventTriggerSelectionRepository eventTriggerSelectionRepository,
             ParameterDefinitionRepository parameterDefinitionRepository,
-            ParameterSelectionRepository parameterSelectionRepository
+            ParameterSelectionRepository parameterSelectionRepository,
+            SubscriptionLifecyclePolicy lifecyclePolicy
     ) {
         this.subscriptionRepository = subscriptionRepository;
         this.subscriptionTypeRepository = subscriptionTypeRepository;
@@ -68,13 +69,16 @@ public class SubscriptionService {
         this.eventTriggerSelectionRepository = eventTriggerSelectionRepository;
         this.parameterDefinitionRepository = parameterDefinitionRepository;
         this.parameterSelectionRepository = parameterSelectionRepository;
+        this.lifecyclePolicy = lifecyclePolicy;
     }
 
     @Transactional
     public SubscriptionResponse create(SubscriptionCreateRequest request, String actor) {
         actor = actorOrSystem(actor);
         SubscriptionType subscriptionType = findSubscriptionType(request.subscriptionType());
-        SubscriptionStatus initialStatus = findSubscriptionStatus(INITIAL_STATUS_CODE);
+        SubscriptionStatus initialStatus = findSubscriptionStatus(
+                lifecyclePolicy.initialStatus(request.basicInfo().goLiveDate())
+        );
 
         Subscription subscription = new Subscription();
         subscription.setSubscriptionUid(newSubscriptionUid());
@@ -98,7 +102,7 @@ public class SubscriptionService {
 
     @Transactional(readOnly = true)
     public List<SubscriptionSummaryResponse> list() {
-        return subscriptionRepository.findByActiveTrueOrderByCreatedAtDesc()
+        return subscriptionRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(this::toSummaryResponse)
                 .toList();
@@ -106,13 +110,13 @@ public class SubscriptionService {
 
     @Transactional(readOnly = true)
     public SubscriptionResponse get(String subscriptionUid) {
-        return toResponse(findActiveSubscription(subscriptionUid));
+        return toResponse(findSubscription(subscriptionUid));
     }
 
     @Transactional
     public SubscriptionResponse patchBasic(String subscriptionUid, SubscriptionPatchRequest request, String actor) {
         actor = actorOrSystem(actor);
-        Subscription subscription = findActiveSubscription(subscriptionUid);
+        Subscription subscription = findSubscription(subscriptionUid);
 
         if (request.basicInfo().name() != null) {
             subscription.setName(request.basicInfo().name());
@@ -130,9 +134,27 @@ public class SubscriptionService {
 
     @Transactional
     public SubscriptionResponse patchStatus(String subscriptionUid, SubscriptionStatusPatchRequest request, String actor) {
+        return transitionLifecycle(subscriptionUid, request.status(), actor);
+    }
+
+    @Transactional
+    public SubscriptionResponse transitionLifecycle(
+            String subscriptionUid,
+            String requestedStatus,
+            String actor
+    ) {
         actor = actorOrSystem(actor);
-        Subscription subscription = findActiveSubscription(subscriptionUid);
-        subscription.setSubscriptionStatusId(findSubscriptionStatus(normalizeCode(request.status())).getId());
+        Subscription subscription = findSubscription(subscriptionUid);
+        String targetStatus = normalizeCode(requestedStatus);
+        String currentStatus = subscriptionStatusCode(subscription.getSubscriptionStatusId());
+        lifecyclePolicy.validateTransition(currentStatus, targetStatus);
+        subscription.setSubscriptionStatusId(findSubscriptionStatus(targetStatus).getId());
+        if (SubscriptionLifecyclePolicy.INACTIVE.equals(targetStatus)
+                || SubscriptionLifecyclePolicy.ARCHIVED.equals(targetStatus)) {
+            subscription.setDeactivatedAt(Instant.now());
+        } else if (SubscriptionLifecyclePolicy.ACTIVE.equals(targetStatus)) {
+            subscription.setDeactivatedAt(null);
+        }
         subscription.markUpdated(actor);
         return toResponse(subscriptionRepository.save(subscription));
     }
@@ -140,7 +162,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse replaceTriggers(String subscriptionUid, ReplaceTriggersRequest request, String actor) {
         actor = actorOrSystem(actor);
-        Subscription subscription = findActiveSubscription(subscriptionUid);
+        Subscription subscription = findSubscription(subscriptionUid);
         List<Long> activeSelectionIds = eventTriggerSelectionRepository
                 .findBySubscriptionIdAndActiveTrue(subscription.getId()).stream()
                 .map(EventTriggerSelection::getId)
@@ -157,7 +179,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponse replaceParameters(String subscriptionUid, ReplaceParametersRequest request, String actor) {
         actor = actorOrSystem(actor);
-        Subscription subscription = findActiveSubscription(subscriptionUid);
+        Subscription subscription = findSubscription(subscriptionUid);
         List<Short> triggerTypeIds = eventTriggerSelectionRepository
                 .findBySubscriptionIdAndActiveTrue(subscription.getId()).stream()
                 .map(EventTriggerSelection::getEventTriggerTypeId)
@@ -225,11 +247,37 @@ public class SubscriptionService {
     @Transactional
     public void softDelete(String subscriptionUid, String actor) {
         actor = actorOrSystem(actor);
-        Subscription subscription = findActiveSubscription(subscriptionUid);
-        subscription.setActive(false);
-        subscription.setSubscriptionStatusId(findSubscriptionStatus("ARCHIVED").getId());
+        Subscription subscription = findSubscription(subscriptionUid);
+        String currentStatus = subscriptionStatusCode(subscription.getSubscriptionStatusId());
+        lifecyclePolicy.validateTransition(currentStatus, SubscriptionLifecyclePolicy.ARCHIVED);
+        subscription.setSubscriptionStatusId(findSubscriptionStatus(SubscriptionLifecyclePolicy.ARCHIVED).getId());
+        subscription.setDeactivatedAt(Instant.now());
         subscription.markUpdated(actor);
         subscriptionRepository.save(subscription);
+    }
+
+    @Transactional
+    public int activateDueScheduledSubscriptions() {
+        SubscriptionStatus scheduled = subscriptionStatusRepository
+                .findByCodeAndActiveTrue(SubscriptionLifecyclePolicy.SCHEDULED)
+                .orElse(null);
+        if (scheduled == null) {
+            return 0;
+        }
+        List<Subscription> dueSubscriptions = subscriptionRepository
+                .findBySubscriptionStatusIdAndActivatedAtLessThanEqualAndActiveTrue(scheduled.getId(), Instant.now());
+        if (dueSubscriptions.isEmpty()) {
+            return 0;
+        }
+
+        SubscriptionStatus active = findSubscriptionStatus(SubscriptionLifecyclePolicy.ACTIVE);
+        dueSubscriptions.forEach(subscription -> {
+            subscription.setSubscriptionStatusId(active.getId());
+            subscription.setDeactivatedAt(null);
+            subscription.markUpdated(SYSTEM_ACTOR);
+        });
+        subscriptionRepository.saveAll(dueSubscriptions);
+        return dueSubscriptions.size();
     }
 
     private EventTriggerSelection firstOrNewSelection(
@@ -273,8 +321,8 @@ public class SubscriptionService {
         return selection;
     }
 
-    private Subscription findActiveSubscription(String subscriptionUid) {
-        return subscriptionRepository.findBySubscriptionUidAndActiveTrue(subscriptionUid)
+    private Subscription findSubscription(String subscriptionUid) {
+        return subscriptionRepository.findBySubscriptionUid(subscriptionUid)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Subscription not found"));
     }
 

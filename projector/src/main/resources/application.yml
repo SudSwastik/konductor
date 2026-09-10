@@ -29,6 +29,9 @@ spring:
         spring.json.add.type.headers: false
 
 konductor:
+  subscription:
+    lifecycle:
+      poll-interval-ms: ${KONDUCTOR_SUBSCRIPTION_LIFECYCLE_POLL_INTERVAL_MS:60000}
   kafka:
     source-events-topic: ${KONDUCTOR_SOURCE_EVENTS_TOPIC:konductor.source-events}
     consumer-acks-topic: ${KONDUCTOR_CONSUMER_ACKS_TOPIC:konductor.consumer-acks}

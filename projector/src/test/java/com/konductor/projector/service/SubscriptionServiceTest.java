@@ -56,6 +56,8 @@ class SubscriptionServiceTest {
     private ParameterDefinitionRepository parameterDefinitionRepository;
     @Mock
     private ParameterSelectionRepository parameterSelectionRepository;
+    @Mock
+    private SubscriptionLifecyclePolicy lifecyclePolicy;
     @InjectMocks
     private SubscriptionService subscriptionService;
 
@@ -68,6 +70,7 @@ class SubscriptionServiceTest {
         when(activeStatus.getId()).thenReturn((short) 1);
         when(activeStatus.getCode()).thenReturn("ACTIVE");
         when(subscriptionTypeRepository.findByCodeAndActiveTrue("EVENT")).thenReturn(Optional.of(subscriptionType));
+        when(lifecyclePolicy.initialStatus(LocalDate.of(2026, 9, 15))).thenReturn("ACTIVE");
         when(subscriptionTypeRepository.findById((short) 2)).thenReturn(Optional.of(subscriptionType));
         when(subscriptionStatusRepository.findByCodeAndActiveTrue("ACTIVE")).thenReturn(Optional.of(activeStatus));
         when(subscriptionStatusRepository.findById((short) 1)).thenReturn(Optional.of(activeStatus));
@@ -159,16 +162,20 @@ class SubscriptionServiceTest {
     void softDeletesSubscriptionAndDerivesArchivedStatus() {
         Subscription subscription = new Subscription();
         subscription.setSubscriptionUid("sub_test");
+        subscription.setSubscriptionStatusId((short) 1);
+        SubscriptionStatus activeStatus = org.mockito.Mockito.mock(SubscriptionStatus.class);
+        when(activeStatus.getCode()).thenReturn("ACTIVE");
         SubscriptionStatus archivedStatus = org.mockito.Mockito.mock(SubscriptionStatus.class);
         when(archivedStatus.getId()).thenReturn((short) 4);
-        when(subscriptionRepository.findBySubscriptionUidAndActiveTrue("sub_test"))
+        when(subscriptionRepository.findBySubscriptionUid("sub_test"))
                 .thenReturn(Optional.of(subscription));
+        when(subscriptionStatusRepository.findById((short) 1)).thenReturn(Optional.of(activeStatus));
         when(subscriptionStatusRepository.findByCodeAndActiveTrue("ARCHIVED"))
                 .thenReturn(Optional.of(archivedStatus));
 
         subscriptionService.softDelete("sub_test", "owner@example.com");
 
-        assertThat(subscription.isActive()).isFalse();
+        assertThat(subscription.isActive()).isTrue();
         assertThat(subscription.getSubscriptionStatusId()).isEqualTo((short) 4);
         assertThat(subscription.getUpdatedBy()).isEqualTo("owner@example.com");
         verify(subscriptionRepository).save(subscription);

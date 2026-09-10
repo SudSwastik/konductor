@@ -4,6 +4,8 @@ export type MasterData = {
   description: string;
 };
 
+export type SubscriptionStatus = "SCHEDULED" | "ACTIVE" | "INACTIVE" | "ARCHIVED";
+
 export type ParameterDefinition = {
   code: string;
   dataType: string;
@@ -17,7 +19,7 @@ export type SubscriptionSummary = {
   subscriptionId: string;
   subscriptionVersion: number;
   subscriptionType: "EVENT" | "API_CALLBACK";
-  status: string;
+  status: SubscriptionStatus;
   basicInfo: {
     name: string;
     description: string | null;
@@ -150,11 +152,23 @@ export function replaceSubscriptionTriggers(
 
 export function patchSubscriptionStatus(
   subscriptionId: string,
-  status: "ACTIVE" | "PAUSED",
+  status: SubscriptionStatus,
   actor?: string,
 ) {
   return request<Subscription>(`/subscriptions/${subscriptionId}/status`, {
     method: "PATCH",
+    headers: actor ? { "X-User-Email": actor } : undefined,
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function transitionSubscription(
+  subscriptionId: string,
+  status: SubscriptionStatus,
+  actor?: string,
+) {
+  return request<Subscription>(`/subscriptions/${subscriptionId}/lifecycle`, {
+    method: "POST",
     headers: actor ? { "X-User-Email": actor } : undefined,
     body: JSON.stringify({ status }),
   });

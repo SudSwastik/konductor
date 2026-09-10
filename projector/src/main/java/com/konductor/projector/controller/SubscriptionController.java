@@ -6,6 +6,7 @@ import com.konductor.projector.dto.SubscriptionCreateRequest;
 import com.konductor.projector.dto.SubscriptionPatchRequest;
 import com.konductor.projector.dto.SubscriptionResponse;
 import com.konductor.projector.dto.SubscriptionStatusPatchRequest;
+import com.konductor.projector.dto.SubscriptionLifecycleTransitionRequest;
 import com.konductor.projector.dto.SubscriptionSummaryResponse;
 import com.konductor.projector.service.SubscriptionService;
 import jakarta.validation.Valid;
@@ -71,6 +72,15 @@ public class SubscriptionController {
             @RequestHeader(value = ACTOR_HEADER, required = false) String actor
     ) {
         return subscriptionService.patchStatus(subscriptionId, request, actor);
+    }
+
+    @PostMapping(value = "/{subscriptionId}/lifecycle", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public SubscriptionResponse transitionLifecycle(
+            @PathVariable String subscriptionId,
+            @Valid @RequestBody SubscriptionLifecycleTransitionRequest request,
+            @RequestHeader(value = ACTOR_HEADER, required = false) String actor
+    ) {
+        return subscriptionService.transitionLifecycle(subscriptionId, request.status(), actor);
     }
 
     @PutMapping("/{subscriptionId}/parameters")

@@ -176,7 +176,7 @@ paths:
       tags: [Subscriptions]
       operationId: deleteSubscription
       summary: Soft-delete a subscription
-      description: Marks the subscription inactive and derives the archived status and audit fields internally.
+      description: Soft-deletes the subscription by transitioning it to ARCHIVED and deriving the audit fields internally.
       parameters:
         - $ref: "#/components/parameters/ActorHeader"
       responses:
@@ -203,10 +203,42 @@ paths:
             schema:
               $ref: "#/components/schemas/SubscriptionStatusPatchRequest"
             example:
-              status: PAUSED
+              status: ACTIVE
       responses:
         "200":
           description: Subscription status updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/v1/subscriptions/{subscriptionId}/lifecycle:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    post:
+      tags: [Subscriptions]
+      operationId: transitionSubscriptionLifecycle
+      summary: Transition a subscription through its lifecycle
+      description: Applies the lifecycle policy. Archived subscriptions can only be unarchived to inactive; scheduled subscriptions may be rescheduled by updating their go-live date through the basic-info endpoint.
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+        - $ref: "#/components/parameters/ActorHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionLifecycleTransitionRequest"
+            example:
+              status: INACTIVE
+      responses:
+        "200":
+          description: Subscription lifecycle status updated.
           content:
             application/json:
               schema:
@@ -523,7 +555,16 @@ components:
         status:
           type: string
           minLength: 1
-          examples: [ACTIVE, PAUSED]
+          enum: [SCHEDULED, ACTIVE, INACTIVE, ARCHIVED]
+
+    SubscriptionLifecycleTransitionRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [SCHEDULED, ACTIVE, INACTIVE, ARCHIVED]
+          description: Target lifecycle status validated against the current status.
 
     ReplaceParametersRequest:
       type: object

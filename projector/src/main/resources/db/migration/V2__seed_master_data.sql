@@ -5,9 +5,9 @@ VALUES
 
 INSERT INTO subscription_status (code, name, description)
 VALUES
+    ('SCHEDULED', 'Scheduled', 'Subscription is waiting for its go-live date.'),
     ('ACTIVE', 'Active', 'Subscription is approved and receiving projected events.'),
-    ('PAUSED', 'Paused', 'Subscription is temporarily stopped.'),
-    ('DRAFT', 'Draft', 'Subscription has been not been  disabled.'),
+    ('INACTIVE', 'Inactive', 'Subscription is retained but not delivering events.'),
     ('ARCHIVED', 'Archived', 'Subscription has been archived.');
 
 INSERT INTO event_trigger_type (code, name, description)
