@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { configureAmplify } from "@/lib/amplify";
 import {
   createSubscription,
@@ -390,6 +391,7 @@ export default function SubscriptionsPage() {
             <p>Route generated events to callbacks and event consumers across your workspace.</p>
           </div>
           <div className={styles.headerActions}>
+            <Link className={styles.secondaryButton} href="/events"><Icon>visibility</Icon>Events</Link>
             <button className={styles.secondaryButton} onClick={() => void loadDashboard()} type="button"><Icon>refresh</Icon>Refresh</button>
             <button className={styles.primaryButton} onClick={openWizard} type="button"><Icon>add</Icon>Add subscription</button>
             <button className={styles.secondaryButton} onClick={() => void logOut()} type="button"><Icon>logout</Icon>Sign out</button>

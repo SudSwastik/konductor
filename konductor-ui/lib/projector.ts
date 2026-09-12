@@ -53,6 +53,24 @@ export type CreateSubscriptionInput = {
   triggers: Array<{ code: string }>;
 };
 
+export type Event = {
+  eventUid: string;
+  sourceEventId: string;
+  subscriptionUid: string | null;
+  triggerType: string | null;
+  status: string | null;
+  attemptCount: number;
+  lastAttemptAt: string | null;
+  nextRetryAt: string | null;
+  deliveredAt: string | null;
+  responseStatusCode: number | null;
+  errorMessage: string | null;
+  payloadHash: string | null;
+  payloadSizeBytes: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const apiRoot = "/projector";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -89,6 +107,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export function listSubscriptions() {
   return request<SubscriptionSummary[]>("/subscriptions");
+}
+
+export function listEvents() {
+  return request<Event[]>('/events');
+}
+
+export function getEvent(eventUid: string) {
+  return request<Event>(`/events/${eventUid}`);
 }
 
 export function getSubscription(subscriptionId: string) {
