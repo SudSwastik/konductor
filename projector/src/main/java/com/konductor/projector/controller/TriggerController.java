@@ -1,6 +1,6 @@
 package com.konductor.projector.controller;
 
-import com.konductor.projector.dto.MasterDataResponse;
+import com.konductor.projector.dto.response.MasterDataResponse;
 import com.konductor.projector.entity.EventTriggerType;
 import com.konductor.projector.repository.EventTriggerTypeRepository;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,6 @@
 package com.konductor.projector.entity;
+import com.konductor.projector.entity.base.AuditFields;
+import com.konductor.projector.entity.base.MutableAuditFields;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

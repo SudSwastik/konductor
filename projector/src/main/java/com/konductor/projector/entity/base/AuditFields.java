@@ -1,4 +1,4 @@
-package com.konductor.projector.entity;
+package com.konductor.projector.entity.base;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;

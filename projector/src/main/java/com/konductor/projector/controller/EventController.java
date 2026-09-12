@@ -1,6 +1,6 @@
 package com.konductor.projector.controller;
 
-import com.konductor.projector.dto.EventResponse;
+import com.konductor.projector.dto.response.EventResponse;
 import com.konductor.projector.service.EventService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

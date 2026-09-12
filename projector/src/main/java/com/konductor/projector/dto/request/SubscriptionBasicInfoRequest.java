@@ -1,4 +1,4 @@
-package com.konductor.projector.dto;
+package com.konductor.projector.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

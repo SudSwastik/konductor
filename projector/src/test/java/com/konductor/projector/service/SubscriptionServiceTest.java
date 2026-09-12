@@ -1,9 +1,11 @@
 package com.konductor.projector.service;
 
-import com.konductor.projector.dto.SubscriptionBasicInfoRequest;
-import com.konductor.projector.dto.SubscriptionCreateRequest;
-import com.konductor.projector.dto.SubscriptionParameterRequest;
-import com.konductor.projector.dto.SubscriptionTriggerRequest;
+import com.konductor.projector.service.impl.SubscriptionServiceImpl;
+
+import com.konductor.projector.dto.request.SubscriptionBasicInfoRequest;
+import com.konductor.projector.dto.request.SubscriptionCreateRequest;
+import com.konductor.projector.dto.request.SubscriptionParameterRequest;
+import com.konductor.projector.dto.request.SubscriptionTriggerRequest;
 import com.konductor.projector.entity.EventTriggerSelection;
 import com.konductor.projector.entity.EventTriggerType;
 import com.konductor.projector.entity.ParameterDefinition;
@@ -59,7 +61,7 @@ class SubscriptionServiceTest {
     @Mock
     private SubscriptionLifecyclePolicy lifecyclePolicy;
     @InjectMocks
-    private SubscriptionService subscriptionService;
+    private SubscriptionServiceImpl subscriptionService;
 
     @Test
     void derivesInternalFieldsWhenCreatingSubscription() {

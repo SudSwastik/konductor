@@ -68,7 +68,7 @@ For every matching active subscription, projector creates an `event` row, projec
 konductor.subscription.<subscription_uid>
 ```
 
-If the subscription has an active `delivery_config.endpoint_url`, projector uses that value as the Kafka topic instead.
+Kafka routing is derived from the subscription UID; `delivery_config.endpoint_url` is not used as a topic.
 
 Consumers publish acknowledgements to the single shared ACK topic:
 
@@ -76,7 +76,7 @@ Consumers publish acknowledgements to the single shared ACK topic:
 konductor.consumer-acks
 ```
 
-Projector marks the event as `DELIVERED` for `ACKED` acknowledgements and `DELIVERY_FAILED` for failed acknowledgements.
+Projector marks the event as `DELIVERED` for `ACKNOWLEDGED` acknowledgements. The sample consumer does not publish processing-error acknowledgements.
 
 ## Build And Test
 

@@ -1,13 +1,13 @@
 package com.konductor.projector.controller;
 
-import com.konductor.projector.dto.ReplaceParametersRequest;
-import com.konductor.projector.dto.ReplaceTriggersRequest;
-import com.konductor.projector.dto.SubscriptionCreateRequest;
-import com.konductor.projector.dto.SubscriptionPatchRequest;
-import com.konductor.projector.dto.SubscriptionResponse;
-import com.konductor.projector.dto.SubscriptionStatusPatchRequest;
-import com.konductor.projector.dto.SubscriptionLifecycleTransitionRequest;
-import com.konductor.projector.dto.SubscriptionSummaryResponse;
+import com.konductor.projector.dto.request.ReplaceParametersRequest;
+import com.konductor.projector.dto.request.ReplaceTriggersRequest;
+import com.konductor.projector.dto.request.SubscriptionCreateRequest;
+import com.konductor.projector.dto.request.SubscriptionPatchRequest;
+import com.konductor.projector.dto.response.SubscriptionResponse;
+import com.konductor.projector.dto.request.SubscriptionStatusPatchRequest;
+import com.konductor.projector.dto.request.SubscriptionLifecycleTransitionRequest;
+import com.konductor.projector.dto.response.SubscriptionSummaryResponse;
 import com.konductor.projector.service.SubscriptionService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

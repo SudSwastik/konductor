@@ -1,0 +1,26 @@
+package com.konductor.consumer.service.impl;
+
+import com.konductor.consumer.service.*;
+
+import com.konductor.consumer.kafka.message.ConsumerAckMessage;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
+@Service
+public class ConsumerAckPublisherImpl implements ConsumerAckPublisher {
+    private final KafkaTemplate<String, ConsumerAckMessage> kafkaTemplate;
+    private final String ackTopic;
+
+    public ConsumerAckPublisherImpl(
+            KafkaTemplate<String, ConsumerAckMessage> kafkaTemplate,
+            @Value("${konductor.kafka.consumer-acks-topic}") String ackTopic
+    ) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.ackTopic = ackTopic;
+    }
+
+    public void publish(ConsumerAckMessage ack) {
+        kafkaTemplate.send(ackTopic, ack.eventUid(), ack);
+    }
+}
