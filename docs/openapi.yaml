@@ -49,6 +49,23 @@ paths:
                 $ref: "#/components/schemas/PublishEventResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+    get:
+      servers:
+        - url: http://localhost:8082
+          description: Local Projector service
+      tags: [Events]
+      operationId: listTrackedEvents
+      summary: List tracked projected events
+      description: Returns delivery tracking records ordered newest first. Database identifiers are not exposed.
+      responses:
+        "200":
+          description: Tracked events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
 
   /api/v1/events/{triggerType}:
     servers:
@@ -73,6 +90,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublishEventResponse"
+
+  /api/v1/events/{eventUid}:
+    servers:
+      - url: http://localhost:8082
+        description: Local Projector service
+    get:
+      tags: [Events]
+      operationId: getTrackedEvent
+      summary: Get event delivery tracking
+      parameters:
+        - name: eventUid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Event tracking details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/v1/subscriptions:
     servers:
@@ -585,6 +626,26 @@ components:
           minItems: 1
           items:
             $ref: "#/components/schemas/SubscriptionTrigger"
+
+    Event:
+      type: object
+      required: [eventUid, sourceEventId, status, attemptCount, createdAt, updatedAt]
+      properties:
+        eventUid: { type: string }
+        sourceEventId: { type: string }
+        subscriptionUid: { type: [string, "null"] }
+        triggerType: { type: [string, "null"] }
+        status: { type: [string, "null"] }
+        attemptCount: { type: integer }
+        lastAttemptAt: { type: [string, "null"], format: date-time }
+        nextRetryAt: { type: [string, "null"], format: date-time }
+        deliveredAt: { type: [string, "null"], format: date-time }
+        responseStatusCode: { type: [integer, "null"] }
+        errorMessage: { type: [string, "null"] }
+        payloadHash: { type: [string, "null"] }
+        payloadSizeBytes: { type: [integer, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     SubscriptionSummary:
       type: object
