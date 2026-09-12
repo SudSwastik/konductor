@@ -1,8 +1,8 @@
-package com.konductor.projector.dto;
+package com.konductor.projector.dto.response;
 
 import java.time.LocalDate;
 
-public record SubscriptionBasicInfoPatchRequest(
+public record SubscriptionBasicInfoResponse(
         String name,
         String description,
         LocalDate goLiveDate

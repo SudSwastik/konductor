@@ -6,66 +6,34 @@ These diagrams reflect the current repository structure. GitHub renders each Mer
 
 ```mermaid
 flowchart LR
-    operator["Workspace operator"]
-    sourceClient["Source client"]
+    operator["Operator"] --> ui["Subscription UI"]
+    ui -->|"auth"| cognito["Cognito"]
+    ui -->|"REST"| projectorApi["Projector API"]
+    source["Source client"] -->|"POST /api/v1/events"| producer["Producer API"]
 
-    subgraph uiSystem["Konductor UI"]
-        nextUi["Next.js subscription UI"]
-        cognito["Amazon Cognito"]
-        apiProxy["Projector API proxy"]
+    subgraph kafka["Kafka topics"]
+        sourceTopic["source-events"]
+        subscriptionTopic["subscription.{uid}"]
+        ackTopic["consumer-acks"]
     end
 
-    subgraph producerSystem["Producer service"]
-        producerApi["EventProducerController"]
-        producerService["EventProducerService"]
+    subgraph projector["Projector"]
+        projection["Match + project"]
+        persistence["Event + config persistence"]
     end
 
-    subgraph messaging["Kafka"]
-        sourceTopic["konductor.source-events"]
-        subscriptionTopic["konductor.subscription.{uid}"]
-        ackTopic["konductor.consumer-acks"]
-    end
+    consumer["Test consumer"]
+    db[("PostgreSQL")]
 
-    subgraph projectorSystem["Projector service"]
-        subscriptionApi["SubscriptionController"]
-        subscriptionService["SubscriptionService"]
-        sourceListener["SourceEventListener"]
-        projectionService["SourceEventProjectionService"]
-        eventPublisher["ProjectedEventPublisher"]
-        ackListener["ConsumerAckListener"]
-        ackService["ConsumerAckService"]
-    end
-
-    postgres[("PostgreSQL")]
-
-    subgraph consumerSystem["Consumer service"]
-        projectedListener["ProjectedEventListener"]
-        consumerService["ProjectedEventConsumerService"]
-        ackPublisher["ConsumerAckPublisher"]
-    end
-
-    operator --> nextUi
-    nextUi -->|"sign in and sign up"| cognito
-    nextUi -->|"subscription requests"| apiProxy
-    apiProxy -->|"REST /api/v1"| subscriptionApi
-    subscriptionApi --> subscriptionService
-    subscriptionService -->|"configuration data"| postgres
-
-    sourceClient -->|"POST /api/v1/events"| producerApi
-    producerApi --> producerService
-    producerService -->|"ProducerEventMessage"| sourceTopic
-    sourceTopic --> sourceListener
-    sourceListener --> projectionService
-    projectionService -->|"read selections and store event"| postgres
-    projectionService --> eventPublisher
-    eventPublisher -->|"ProjectedEventMessage"| subscriptionTopic
-    subscriptionTopic --> projectedListener
-    projectedListener --> consumerService
-    consumerService --> ackPublisher
-    ackPublisher -->|"ConsumerAckMessage"| ackTopic
-    ackTopic --> ackListener
-    ackListener --> ackService
-    ackService -->|"update delivery status"| postgres
+    projectorApi --> persistence
+    persistence --> db
+    producer --> sourceTopic
+    sourceTopic --> projection
+    projection --> db
+    projection --> subscriptionTopic
+    subscriptionTopic --> consumer
+    consumer -->|"ACKNOWLEDGED"| ackTopic
+    ackTopic --> projection
 ```
 
 ## Event projection and acknowledgement sequence
@@ -96,11 +64,7 @@ sequenceDiagram
         SubscriptionTopic->>Consumer: Consume projected event
         Consumer->>AckTopic: ConsumerAckMessage
         AckTopic->>Projector: Consume acknowledgement
-        alt Acknowledged
-            Projector->>Database: Mark event DELIVERED
-        else Failed
-            Projector->>Database: Mark event DELIVERY_FAILED
-        end
+        Projector->>Database: Mark event DELIVERED for ACKNOWLEDGED
     end
 ```
 

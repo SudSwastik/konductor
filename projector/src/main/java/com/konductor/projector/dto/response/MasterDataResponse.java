@@ -1,4 +1,4 @@
-package com.konductor.projector.dto;
+package com.konductor.projector.dto.response;
 
 public record MasterDataResponse(
         String code,

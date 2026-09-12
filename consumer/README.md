@@ -23,4 +23,4 @@ KONDUCTOR_CONSUMER_ACKS_TOPIC=konductor.consumer-acks
 KONDUCTOR_CONSUMER_NAME=sample-consumer
 ```
 
-Projector publishes to `konductor.subscription.<subscription_uid>` by default. If a subscription has a delivery config with `endpointUrl`, projector uses that value as the topic instead.
+Each consumer instance belongs to one subscription and listens to that subscription's topic. Projector always publishes to `konductor.subscription.<subscription_uid>`; delivery configuration does not override Kafka routing.

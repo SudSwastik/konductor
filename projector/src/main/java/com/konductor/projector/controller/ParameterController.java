@@ -1,6 +1,6 @@
 package com.konductor.projector.controller;
 
-import com.konductor.projector.dto.ParameterDefinitionResponse;
+import com.konductor.projector.dto.response.ParameterDefinitionResponse;
 import com.konductor.projector.entity.ParameterDefinition;
 import com.konductor.projector.repository.ParameterDataTypeRepository;
 import com.konductor.projector.repository.ParameterDefinitionRepository;
